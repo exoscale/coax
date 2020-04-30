@@ -90,9 +90,7 @@ Learn by example:
 ; Custom registered keywords always takes precedence over inference
 (sc/coerce ::my-custom-attr "Z") ; => #user.SomeClass{:x "Z"}
 
-; Coercers in the registry can be overriden within a specific context
-(binding [sc/*overrides* {::my-custom-attr keyword}]
-  (sc/coerce ::my-custom-attr "Z")) ; => :Z
+(sc/coerce ::my-custom-attr "Z") {::sc/overrides {::my-custom-attr keyword}}) ; => :Z
 ```
 
 Examples from predicate to coerced value:
