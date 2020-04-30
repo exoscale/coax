@@ -14,17 +14,21 @@ Add this to your dependencies:
 
 ## Fork of spec-coerce
 
-A Clojure(script) library designed to leverage your specs to coerce your information into correct types.
+It's a fork of spec-coerce that changes/optimises some internals for our usage and allows us to get faster patch/release cycles.
+
+Clojure(script) library designed to leverage your specs to coerce your information into correct types.
 
 Spec Coerce will remain in alpha while clojure.spec still in alpha.
 
-Usage
+## Usage
+
 Learn by example:
 
-(ns exoscale.coax.example
+```clojure
+(ns spec-coerce.example
   (:require
     [clojure.spec.alpha :as s]
-    [exoscale.coax :as sc]))
+    [spec-coerce.core :as sc]))
 
 ; Define a spec as usual
 (s/def ::number int?)
@@ -89,8 +93,11 @@ Learn by example:
 ; Coercers in the registry can be overriden within a specific context
 (binding [sc/*overrides* {::my-custom-attr keyword}]
   (sc/coerce ::my-custom-attr "Z")) ; => :Z
+```
+
 Examples from predicate to coerced value:
 
+```clojure
 ; Numbers
 (sc/coerce `number? "42")                                   ; => 42.0
 (sc/coerce `integer? "42")                                  ; => 42
@@ -166,9 +173,9 @@ Examples from predicate to coerced value:
 
 ;; Conform on coerce structure
 (sc/coerce-structure {::number "42"} {::sc/op sc/conform})
+```
 
-
-License
+## License
 
 Copyright © 2017 Wilker Lúcio
 
