@@ -1,4 +1,4 @@
-(ns spec-coerce.cljs-test-runner
+(ns exoscale.coax.cljs-test-runner
   (:require [doo.runner :refer-macros [doo-tests]]
             [spec-coerce.core-test]))
 

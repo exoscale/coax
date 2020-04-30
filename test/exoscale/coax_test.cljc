@@ -1,4 +1,4 @@
-(ns spec-coerce.core-test
+(ns exoscale.coax-test
   #?(:cljs (:require-macros [cljs.test :refer [deftest testing is are run-tests]]))
   (:require
     #?(:clj [clojure.test :refer [deftest testing is are]])
@@ -11,7 +11,7 @@
     #?(:clj
        [clojure.test.check.clojure-test :refer [defspec]])
     #?(:cljs [clojure.test.check.clojure-test :refer-macros [defspec]])
-    [spec-coerce.core :as sc])
+    [exoscale.coax :as sc])
   #?(:clj
      (:import (java.net URI))))
 

@@ -1,6 +1,6 @@
-(ns spec-coerce.core
+(ns exoscale.coax
   (:refer-clojure :exclude [def])
-  (:require [com.wsscode.spec-inspec :as si]
+  (:require [exoscale.coax.inspect :as si]
             [clojure.spec.alpha :as s]
             [clojure.walk :as walk]
             [clojure.string :as str]
