@@ -1,4 +1,4 @@
-(defproject exoscale/coax "0.1.3"
+(defproject exoscale/coax "0.1.4-SNAPSHOT"
   :description "exo spec-coerce fork"
   :url "https://github.com/exoscale/coax"
   :dependencies [[org.clojure/clojure "1.10.1"]]
