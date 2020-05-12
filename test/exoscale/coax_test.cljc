@@ -39,6 +39,7 @@
 (s/def ::nilable-pos-int (s/nilable (s/and ::infer-int pos?)))
 (s/def ::nilable-string (s/nilable string?))
 
+(s/def ::nilable-set #{nil})
 (s/def ::int-set #{1 2})
 (s/def ::float-set #{1.2 2.1})
 (s/def ::boolean-set #{true})
@@ -78,7 +79,8 @@
 
   (testing "go over nilables"
     (is (= (sc/coerce ::infer-nilable "123") 123))
-    (is (= (sc/coerce ::infer-nilable "nil") nil))
+    (is (= (sc/coerce ::infer-nilable nil) nil))
+    (is (= (sc/coerce ::infer-nilable "") ""))
     (is (= (sc/coerce ::nilable-int "10") 10))
     (is (= (sc/coerce ::nilable-pos-int "10") 10))
 
@@ -88,6 +90,7 @@
     (is (= (sc/coerce ::nilable-string "asdf") "asdf")))
 
   (testing "specs given as sets"
+    (is (= (sc/coerce ::nilable-set nil) nil))
     (is (= (sc/coerce ::int-set "1") 1))
     (is (= (sc/coerce ::float-set "1.2") 1.2))
     (is (= (sc/coerce ::boolean-set "true") true))
@@ -95,7 +98,6 @@
     (is (= (sc/coerce ::string-set "hey") "hey"))
     (is (= (sc/coerce ::keyword-set ":b") :b))
     (is (= (sc/coerce ::uuid-set "d6e73cc5-95bc-496a-951c-87f11af0d839") #uuid "d6e73cc5-95bc-496a-951c-87f11af0d839"))
-    (is (= (sc/coerce ::nil-set "nil") nil))
     ;;#?(:clj (is (= (sc/coerce ::uri-set "http://site.com") (URI. "http://site.com"))))
     #?(:clj (is (= (sc/coerce ::decimal-set "42.42M") 42.42M)))
 
@@ -153,8 +155,7 @@
     `simple-symbol? "simple-sym" 'simple-sym
     `qualified-symbol? "qualified/sym" 'qualified/sym
     `uuid? "d6e73cc5-95bc-496a-951c-87f11af0d839" #uuid "d6e73cc5-95bc-496a-951c-87f11af0d839"
-    `nil? "nil" nil
-    `nil? "null" nil
+    `nil? nil nil
     `false? "false" false
     `true? "true" true
     `zero? "0" 0
