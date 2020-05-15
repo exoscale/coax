@@ -312,7 +312,13 @@
 
     (is (= [1] (sc/coerce `(s/coll-of string?) ["1"]
                           {::sc/ident {`string? p/parse-long}}))
-        "overrides works on qualified-idents, also with composites")))
+        "overrides works on qualified-idents, also with composites")
+
+    (is (= ["foo" "bar" "baz"]
+           (sc/coerce `vector?
+                      "foo,bar,baz"
+                      {::sc/ident {`vector? (fn [x _] (str/split x #"[,]"))}}))
+        "override on real world use case with vector?")))
 
 (s/def ::foo int?)
 (s/def ::bar string?)
