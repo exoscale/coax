@@ -74,8 +74,8 @@ Learn by example:
                       ::not-defined "bla"
                       :unqualified  "12"
                       :sub          {::odd-number "45"}}
-                     {::sc/overrides {::not-defined `keyword?
-                                      :unqualified  ::number}})
+                     {::sc/ident {::not-defined `keyword?
+                                  :unqualified  ::number}})
 ; => {::number      42
 ;     ::not-defined :bla
 ;     :unqualified  12
@@ -89,7 +89,7 @@ Learn by example:
 ; Custom registered keywords always takes precedence over inference
 (sc/coerce ::my-custom-attr "Z") ; => #user.SomeClass{:x "Z"}
 
-(sc/coerce ::my-custom-attr "Z") {::sc/overrides {::my-custom-attr keyword}}) ; => :Z
+(sc/coerce ::my-custom-attr "Z") {::sc/ident {::my-custom-attr keyword}}) ; => :Z
 ```
 
 Examples from predicate to coerced value:

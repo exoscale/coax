@@ -3,19 +3,15 @@
   (:require [exoscale.coax.inspect :as si]
             [exoscale.coax.parser :as p]
             [clojure.spec.alpha :as s]
-            [clojure.walk :as walk]
-            [clojure.string :as str]
-            #?(:clj
-               [clojure.instant]))
-  #?(:clj
-     (:import (java.util Date TimeZone UUID)
-              (java.net URI)
-              (java.time LocalDate LocalDateTime ZoneId)
-              (java.time.format DateTimeFormatter))))
+            [clojure.walk :as walk])
+  (:import (clojure.lang Keyword)
+           #?@(:clj
+               ((java.util Date UUID)
+                (java.time Instant)
+                (java.net URI)
+                (java.time.format DateTimeFormatter)))))
 
 (declare coerce)
-
-;;; form parsers
 
 (defn gen-parse-or [[_ & pairs]]
   (fn [x opts]
@@ -29,9 +25,10 @@
 
 (defn gen-parse-keys
   [[_ & {:keys [req-un opt-un]}]]
-  (let [unnest (comp (filter keyword?)
-                     (map #(vector (keyword (name %)) %)))
-        keys-mapping (into {} unnest (flatten (concat req-un opt-un)))]
+  (let [keys-mapping (into {}
+                           (comp (filter keyword?)
+                                 (map #(vector (keyword (name %)) %)))
+                           (flatten (concat req-un opt-un)))]
     (fn [x opts]
       (cond->> x
         (associative? x)
@@ -100,6 +97,11 @@
               pred-forms)
       x)))
 
+(defprotocol EnumKey
+  (enum-key [x]
+    "takes enum value `x` and returns matching predicate to resolve
+    parser from registry"))
+
 (defonce ^:no-doc registry
   (atom {::form
          {`s/or gen-parse-or
@@ -135,7 +137,10 @@
           `inst? p/parse-inst
           `false? p/parse-boolean
           `true? p/parse-boolean
-          `zero? p/parse-long}}))
+          `zero? p/parse-long}
+         ::enum #'enum-key}))
+
+;; @registry
 
 #?(:clj (swap! registry
                update ::ident
@@ -143,23 +148,49 @@
                `uri? p/parse-uri
                `decimal? p/parse-decimal))
 
-(defn set-type
-  "Could be a protocol"
-  [x]
-  (cond (int? x)     `integer?
-        (float? x)   `float?
-        (boolean? x) `boolean?   ;; pointless but valid
-        ;;(symbol? x)  `symbol?  ;; doesn't work.
-        ;;(ident? x)   `ident?   ;; doesn't work.
-        (string? x)  `string?
-        (keyword? x) `keyword?
-        (uuid? x)    `uuid?
-        (nil? x)     `nil?       ;; even more pointless but stil valid
+(extend-protocol EnumKey
+  Number
+  (enum-key [x] `number?)
 
-        ;;#?(:clj (uri? x))     #?(:clj `uri?) ;; doesn't work.
-        #?(:clj (decimal? x)) #?(:clj `decimal?)))
+  Long
+  (enum-key [x] `int?)
 
-(defn homogeneous-set? [x]
+  Double
+  (enum-key [x] `double?)
+
+  Float
+  (enum-key [x] `float?)
+
+  String
+  (enum-key [x] `string?)
+
+  Boolean
+  (enum-key [x] `boolean?)
+
+  Keyword
+  (enum-key [x] `keyword?)
+
+  UUID
+  (enum-key [x] `uuid?)
+
+  nil
+  (enum-key [x] `nil?)
+
+  Object
+  (enum-key [x] nil))
+
+#?(:clj
+   (extend-protocol EnumKey
+     Instant
+     (enum-key [x] `inst?)
+     Date
+     (enum-key [x] `inst?)
+     URI
+     (enum-key [x] `uri?)
+     BigDecimal
+     (enum-key [x] `decimal?)))
+
+(defn enum? [x]
   "If the spec is given as a set, and every member of the set is the same type,
   then we can infer a coercion from that shared type."
   (when (set? x)
@@ -172,20 +203,26 @@
               x))))
 
 (defn find-coercer
-  [x opts]
-  (let [reg (-> @registry
-                (update ::ident merge (::overrides opts))
-                (update ::form merge (::form-overrides opts)))]
+  "Tries to find coercer by looking into registry.
+  First looking at ::ident if value is a qualified-keyword or
+  qualified symbol, or checking if the value is an enum
+  value (homogeneous set) and lastly if it's a s-exp form that
+  indicates a spec form likely it will return it's generated parser
+  from registry ::form , otherwise the it returns the identity parser"
+  [x {:as opts ::keys [enum]}]
+  (let [{:as reg ::keys [ident]}
+        (-> @registry
+            (update ::ident merge (::ident opts))
+            (update ::form merge (::form opts))
+            (cond-> enum (assoc ::enum enum)))]
     (or (cond (qualified-ident? x)
-              (get-in reg [::ident x])
+              (get ident x)
 
-              (homogeneous-set? x)
-              (get-in reg [::ident (set-type (first x))])
+              (enum? x)
+              (get ident ((::enum reg) (first x)))
 
               (sequential? x)
-              ((get-in reg
-                       [::form (first x)])
-               x))
+              ((get-in reg [::form (first x)]) x))
         p/identity-parser)))
 
 (defn nilable-spec? [spec]
@@ -232,10 +269,10 @@
   the coercion on the registry, otherwise try to infer from the
   specs. In case nothing is found, identity function is returned."
   ([k] (coerce-fn k {}))
-  ([k {::keys [overrides] :as opts}]
+  ([k {::keys [ident] :as opts}]
    (or (when (qualified-keyword? k)
          (si/registry-lookup (merge (::ident @registry)
-                                    overrides) k))
+                                    ident) k))
        (infer-coercion k opts))))
 
 (defn coerce
@@ -293,7 +330,7 @@
 (defn coerce-structure
   "Recursively coerce map values on a structure."
   ([x] (coerce-structure x {}))
-  ([x {::keys [overrides op]
+  ([x {::keys [ident op]
        :or {op coerce}
        :as opts}]
    (walk/prewalk (fn [x]
@@ -301,6 +338,6 @@
                      (map? x)
                      (into (empty x)
                            (map (fn [[k v]]
-                                  (let [coercion (get overrides k k)]
+                                  (let [coercion (get ident k k)]
                                     [k (op coercion v opts)]))))))
                  x)))

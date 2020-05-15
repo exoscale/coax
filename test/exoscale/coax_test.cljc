@@ -250,8 +250,8 @@
                                ::not-defined   "bla"
                                :unqualified    "12"
                                :sub            {::infer-int "42"}}
-           {::sc/overrides {::not-defined `keyword?
-                            :unqualified  ::infer-int}})
+           {::sc/ident {::not-defined `keyword?
+                        :unqualified  ::infer-int}})
          {::some-coercion 321
           ::not-defined   :bla
           :unqualified    12
@@ -302,16 +302,16 @@
                        ::arms ["4" "4"]
                        ::legs ["7" "7"]
                        :name "john"}
-                      {::sc/overrides
+                      {::sc/ident
                        {::head p/parse-long
                         ::leg p/parse-long
                         ::name p/parse-keyword}}))
         "Coerce with option form")
-    (is (= 1 (sc/coerce `string? "1" {::sc/overrides {`string? p/parse-long}}))
+    (is (= 1 (sc/coerce `string? "1" {::sc/ident {`string? p/parse-long}}))
         "overrides works on qualified-idents")
 
     (is (= [1] (sc/coerce `(s/coll-of string?) ["1"]
-                          {::sc/overrides {`string? p/parse-long}}))
+                          {::sc/ident {`string? p/parse-long}}))
         "overrides works on qualified-idents, also with composites")))
 
 (s/def ::foo int?)

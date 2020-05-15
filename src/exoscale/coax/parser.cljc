@@ -23,7 +23,7 @@
            (catch #?(:clj Exception :cljs :default) _
              x))
          (number? x) (long x)
-         :else       x)))
+         :else x)))
 
 (defn parse-double
   ([x] (parse-double x nil))
@@ -92,7 +92,7 @@
   ([x _]
    (if (string? x)
      (try
-       #?(:clj  (flexible-parse-inst x)
+       #?(:clj (flexible-parse-inst x)
           :cljs (js/Date. x))
        (catch #?(:clj Exception :cljs :default) _
          x))
