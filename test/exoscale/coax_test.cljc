@@ -83,6 +83,7 @@
     (is (= (sc/coerce ::infer-nilable nil) nil))
     (is (= (sc/coerce ::infer-nilable "") ""))
     (is (= (sc/coerce ::nilable-int "10") 10))
+    (is (= (sc/coerce ::nilable-int "10" {::sc/ident {`int? (fn [x _] (keyword x))}}) :10))
     (is (= (sc/coerce ::nilable-pos-int "10") 10))
 
     (is (= (sc/coerce ::nilable-string nil) nil))
