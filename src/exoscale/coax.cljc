@@ -286,9 +286,9 @@
 
 (defn conform
   "Like coerce, and will call s/conform on the result."
-  ([k x] (conform k x {}))
-  ([k x opts]
-   (s/conform k (coerce k x opts))))
+  ([spec x] (conform spec x {}))
+  ([spec x opts]
+   (s/conform spec (coerce spec x opts))))
 
 (defn ^:no-doc def-impl [k coerce-fn]
   (swap! registry assoc-in [::idents k] coerce-fn)
@@ -315,6 +315,5 @@
                      (map? x)
                      (into (empty x)
                            (map (fn [[k v]]
-                                  (let [coercion (get idents k k)]
-                                    [k (op coercion v opts)]))))))
+                                  [k (op (get idents k k) v opts)])))))
                  x)))
