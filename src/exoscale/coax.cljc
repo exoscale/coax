@@ -13,7 +13,7 @@
 
 (declare coerce)
 
-(defn gen-parse-or [[_ & pairs]]
+(defn gen-coerce-or [[_ & pairs]]
   (fn [x opts]
     (reduce (fn [x [_ spec]]
               (let [coerced (coerce spec x opts)]
@@ -23,11 +23,11 @@
             x
             (partition 2 pairs))))
 
-(defn gen-parse-and [[_ & [spec]]]
+(defn gen-coerce-and [[_ & [spec]]]
   (fn [x opts]
     (coerce spec x opts)))
 
-(defn gen-parse-keys
+(defn gen-coerce-keys
   [[_ & {:keys [req-un opt-un]}]]
   (let [keys-mapping (into {}
                            (comp (filter keyword?)
@@ -44,13 +44,7 @@
                                     opts)))
                    (empty x))))))
 
-(defn- map-seq
-  [fun x]
-  (if (vector? x)
-    (mapv fun x)
-    (map fun x)))
-
-(defn gen-parse-coll-of [[_ spec & {:as _opts :keys [kind]}]]
+(defn gen-coerce-coll-of [[_ spec & {:as _opts :keys [kind]}]]
   (fn [x opts]
     (if (sequential? x)
       ;; either we have a `:kind` and coerce to that, or we
@@ -68,7 +62,7 @@
                 reverse))
       x)))
 
-(defn gen-parse-map-of [[_ kspec vspec & _]]
+(defn gen-coerce-map-of [[_ kspec vspec & _]]
   (fn [x opts]
     (cond->> x
       (associative? x)
@@ -77,14 +71,14 @@
                    [(coerce kspec k opts)
                     (coerce vspec v opts)]))))))
 
-(defn gen-parse-tuple [[_ & specs]]
+(defn gen-coerce-tuple [[_ & specs]]
   (fn [x opts]
     (cond->> x
       (sequential? x)
       (mapv #(coerce %1 %2 opts)
             specs))))
 
-(defn gen-parse-multi-spec
+(defn gen-coerce-multi-spec
   [[_ f retag & _]]
   (let [f (resolve f)]
     (fn [x opts]
@@ -94,7 +88,7 @@
                 opts)
         x))))
 
-(defn gen-parse-merge
+(defn gen-coerce-merge
   [[_ & spec-forms]]
   (fn [x opts]
     (if (associative? x)
@@ -113,7 +107,7 @@
               spec-forms)
       x)))
 
-(defn gen-parse-nilable
+(defn gen-coerce-nilable
   [[_ spec]]
   (fn [x opts]
     (when (some? x)
@@ -122,19 +116,19 @@
 (defprotocol EnumKey
   (enum-key [x]
     "takes enum value `x` and returns matching predicate to resolve
-    parser from registry"))
+    coercer from registry"))
 
 (defonce ^:no-doc registry
   (atom {::forms
-         {`s/or gen-parse-or
-          `s/and gen-parse-and
-          `s/nilable gen-parse-nilable
-          `s/coll-of gen-parse-coll-of
-          `s/map-of gen-parse-map-of
-          `s/tuple gen-parse-tuple
-          `s/multi-spec gen-parse-multi-spec
-          `s/keys gen-parse-keys
-          `s/merge gen-parse-merge}
+         {`s/or gen-coerce-or
+          `s/and gen-coerce-and
+          `s/nilable gen-coerce-nilable
+          `s/coll-of gen-coerce-coll-of
+          `s/map-of gen-coerce-map-of
+          `s/tuple gen-coerce-tuple
+          `s/multi-spec gen-coerce-multi-spec
+          `s/keys gen-coerce-keys
+          `s/merge gen-coerce-merge}
          ::idents
          {`string? c/to-string
           `number? c/to-double
@@ -231,8 +225,8 @@
   First looking at ::idents if value is a qualified-keyword or
   qualified symbol, or checking if the value is an enum
   value (homogeneous set) and lastly if it's a s-exp form that
-  indicates a spec form likely it will return it's generated parser
-  from registry ::form , otherwise the it returns the identity parser"
+  indicates a spec form likely it will return it's generated coercer
+  from registry ::form , otherwise the it returns the identity coercer"
   [spec-exp {:as opts ::keys [enums]}]
   (let [{:as reg ::keys [idents]} (-> @registry
                                       (update ::idents merge (::idents opts))
