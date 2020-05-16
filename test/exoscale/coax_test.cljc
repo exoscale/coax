@@ -12,7 +12,7 @@
        [clojure.test.check.clojure-test :refer [defspec]])
     #?(:cljs [clojure.test.check.clojure-test :refer-macros [defspec]])
     [exoscale.coax :as sc]
-    [exoscale.coax.parser :as p])
+    [exoscale.coax.coercer :as c])
   #?(:clj
      (:import (java.net URI))))
 
@@ -26,10 +26,10 @@
 
 #?(:clj (s/def ::infer-decimal? decimal?))
 
-(sc/def ::some-coercion p/parse-long)
+(sc/def ::some-coercion c/to-long)
 
 (s/def ::first-layer int?)
-(sc/def ::first-layer (fn [x _] (inc (p/parse-long x))))
+(sc/def ::first-layer (fn [x _] (inc (c/to-long x nil))))
 
 (s/def ::second-layer ::first-layer)
 (s/def ::second-layer-and (s/and ::first-layer #(> % 10)))
@@ -83,7 +83,7 @@
     (is (= (sc/coerce ::infer-nilable nil) nil))
     (is (= (sc/coerce ::infer-nilable "") ""))
     (is (= (sc/coerce ::nilable-int "10") 10))
-    (is (= (sc/coerce ::nilable-int "10" {::sc/ident {`int? (fn [x _] (keyword x))}}) :10))
+    (is (= (sc/coerce ::nilable-int "10" {::sc/idents {`int? (fn [x _] (keyword x))}}) :10))
     (is (= (sc/coerce ::nilable-pos-int "10") 10))
 
     (is (= (sc/coerce ::nilable-string nil) nil))
@@ -164,6 +164,9 @@
 
     `(s/coll-of int?) ["11" "31" "42"] [11 31 42]
     `(s/coll-of int?) ["11" "foo" "42"] [11 "foo" 42]
+    `(s/coll-of int? :kind list?) ["11" "foo" "42"] '(11 "foo" 42)
+    `(s/coll-of int? :kind set?) ["11" "foo" "42"] #{11 "foo" 42}
+    `(s/coll-of int? :kind vector?) '("11" "foo" "42") [11 "foo" 42]
 
     `(s/map-of keyword? int?) {"foo" "42" "bar" "31"} {:foo 42 :bar 31}
     `(s/map-of keyword? int?) "foo" "foo"
@@ -194,7 +197,7 @@
 
 (deftest test-coerce-generative
   (doseq [s (->> @sc/registry
-                 ::sc/ident
+                 ::sc/idents
                  (keys)
                  (filter symbol?))
           :let [sp #?(:clj @(resolve s)
@@ -251,7 +254,7 @@
                                ::not-defined   "bla"
                                :unqualified    "12"
                                :sub            {::infer-int "42"}}
-           {::sc/ident {::not-defined `keyword?
+           {::sc/idents {::not-defined `keyword?
                         :unqualified  ::infer-int}})
          {::some-coercion 321
           ::not-defined   :bla
@@ -303,22 +306,22 @@
                        ::arms ["4" "4"]
                        ::legs ["7" "7"]
                        :name "john"}
-                      {::sc/ident
-                       {::head p/parse-long
-                        ::leg p/parse-long
-                        ::name p/parse-keyword}}))
+                      {::sc/idents
+                       {::head c/to-long
+                        ::leg c/to-long
+                        ::name c/to-keyword}}))
         "Coerce with option form")
-    (is (= 1 (sc/coerce `string? "1" {::sc/ident {`string? p/parse-long}}))
+    (is (= 1 (sc/coerce `string? "1" {::sc/idents {`string? c/to-long}}))
         "overrides works on qualified-idents")
 
     (is (= [1] (sc/coerce `(s/coll-of string?) ["1"]
-                          {::sc/ident {`string? p/parse-long}}))
+                          {::sc/idents {`string? c/to-long}}))
         "overrides works on qualified-idents, also with composites")
 
     (is (= ["foo" "bar" "baz"]
            (sc/coerce `vector?
                       "foo,bar,baz"
-                      {::sc/ident {`vector? (fn [x _] (str/split x #"[,]"))}}))
+                      {::sc/idents {`vector? (fn [x _] (str/split x #"[,]"))}}))
         "override on real world use case with vector?")))
 
 (s/def ::foo int?)

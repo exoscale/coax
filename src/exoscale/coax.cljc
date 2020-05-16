@@ -1,7 +1,7 @@
 (ns exoscale.coax
   (:refer-clojure :exclude [def])
   (:require [exoscale.coax.inspect :as si]
-            [exoscale.coax.parser :as p]
+            [exoscale.coax.coercer :as c]
             [clojure.spec.alpha :as s]
             [clojure.walk :as walk])
   (:import (clojure.lang Keyword)
@@ -15,17 +15,17 @@
 
 (defn gen-parse-or [[_ & pairs]]
   (fn [x opts]
-    (reduce (fn [x [_ pred]]
-              (let [coerced (coerce pred x opts)]
+    (reduce (fn [x [_ spec]]
+              (let [coerced (coerce spec x opts)]
                 (if (= x coerced)
                   x
                   (reduced coerced))))
             x
             (partition 2 pairs))))
 
-(defn gen-parse-and [[_ & [pred]]]
+(defn gen-parse-and [[_ & [spec]]]
   (fn [x opts]
-    (coerce pred x opts)))
+    (coerce spec x opts)))
 
 (defn gen-parse-keys
   [[_ & {:keys [req-un opt-un]}]]
@@ -50,27 +50,39 @@
     (mapv fun x)
     (map fun x)))
 
-(defn gen-parse-coll-of [[_ pred & _]]
+(defn gen-parse-coll-of [[_ spec & {:as _opts :keys [kind]}]]
   (fn [x opts]
-    (cond->> x
-      (sequential? x)
-      (map-seq #(coerce pred % opts)))))
+    (if (sequential? x)
+      ;; either we have a `:kind` and coerce to that, or we
+      ;; just `empty` the original
+      (let [xs (into (condp = kind
+                    `vector? []
+                    `set? #{}
+                    `coll? '()
+                    `list? '()
+                    ;; else
+                    (empty x))
+                  (map #(coerce spec % opts))
+                  x)]
+        (cond-> xs (list? xs)
+                reverse))
+      x)))
 
-(defn gen-parse-map-of [[_ kpred vpred & _]]
+(defn gen-parse-map-of [[_ kspec vspec & _]]
   (fn [x opts]
     (cond->> x
       (associative? x)
       (into (empty x) ;; ensure we copy meta
             (map (fn [[k v]]
-                   [(coerce kpred k opts)
-                    (coerce vpred v opts)]))))))
+                   [(coerce kspec k opts)
+                    (coerce vspec v opts)]))))))
 
-(defn gen-parse-tuple [[_ & preds]]
+(defn gen-parse-tuple [[_ & specs]]
   (fn [x opts]
     (cond->> x
       (sequential? x)
       (mapv #(coerce %1 %2 opts)
-            preds))))
+            specs))))
 
 (defn gen-parse-multi-spec
   [[_ f retag & _]]
@@ -83,29 +95,29 @@
         x))))
 
 (defn gen-parse-merge
-  [[_ & pred-forms]]
+  [[_ & spec-forms]]
   (fn [x opts]
     (if (associative? x)
-      (reduce (fn [m pred-form]
-                ;; for every pred-form coerce to new value;
+      (reduce (fn [m spec-form]
+                ;; for every spec-form coerce to new value;
                 ;; we need to compare key by key what changed so that
                 ;; defaults do not overwrite coerced values
                 (into m
-                      (keep (fn [[k v]]
-                              (let [new-val (coerce k v opts)]
+                      (keep (fn [[spec v]]
+                              (let [new-val (coerce spec v opts)]
                                 ;; new-val doesn't match default, keep it
-                                (when-not (= (get x k) new-val)
-                                  [k new-val]))))
-                      (coerce pred-form x opts)))
+                                (when-not (= (get x spec) new-val)
+                                  [spec new-val]))))
+                      (coerce spec-form x opts)))
               x
-              pred-forms)
+              spec-forms)
       x)))
 
 (defn gen-parse-nilable
-  [[_ pred]]
+  [[_ spec]]
   (fn [x opts]
     (when (some? x)
-      (coerce pred x opts))))
+      (coerce spec x opts))))
 
 (defprotocol EnumKey
   (enum-key [x]
@@ -113,7 +125,7 @@
     parser from registry"))
 
 (defonce ^:no-doc registry
-  (atom {::form
+  (atom {::forms
          {`s/or gen-parse-or
           `s/and gen-parse-and
           `s/nilable gen-parse-nilable
@@ -123,42 +135,42 @@
           `s/multi-spec gen-parse-multi-spec
           `s/keys gen-parse-keys
           `s/merge gen-parse-merge}
-         ::ident
-         {`string? p/parse-string
-          `number? p/parse-double
-          `integer? p/parse-long
-          `int? p/parse-long
-          `pos-int? p/parse-long
-          `neg-int? p/parse-long
-          `nat-int? p/parse-long
-          `even? p/parse-long
-          `odd? p/parse-long
-          `float? p/parse-double
-          `double? p/parse-double
-          `boolean? p/parse-boolean
-          `ident? p/parse-ident
-          `simple-ident? p/parse-ident
-          `qualified-ident? p/parse-ident
-          `keyword? p/parse-keyword
-          `simple-keyword? p/parse-keyword
-          `qualified-keyword? p/parse-keyword
-          `symbol? p/parse-symbol
-          `simple-symbol? p/parse-symbol
-          `qualified-symbol? p/parse-symbol
-          `uuid? p/parse-uuid
-          `inst? p/parse-inst
-          `false? p/parse-boolean
-          `true? p/parse-boolean
-          `zero? p/parse-long}
-         ::enum #'enum-key}))
+         ::idents
+         {`string? c/to-string
+          `number? c/to-double
+          `integer? c/to-long
+          `int? c/to-long
+          `pos-int? c/to-long
+          `neg-int? c/to-long
+          `nat-int? c/to-long
+          `even? c/to-long
+          `odd? c/to-long
+          `float? c/to-double
+          `double? c/to-double
+          `boolean? c/to-boolean
+          `ident? c/to-ident
+          `simple-ident? c/to-ident
+          `qualified-ident? c/to-ident
+          `keyword? c/to-keyword
+          `simple-keyword? c/to-keyword
+          `qualified-keyword? c/to-keyword
+          `symbol? c/to-symbol
+          `simple-symbol? c/to-symbol
+          `qualified-symbol? c/to-symbol
+          `uuid? c/to-uuid
+          `inst? c/to-inst
+          `false? c/to-boolean
+          `true? c/to-boolean
+          `zero? c/to-long}
+         ::enums #'enum-key}))
 
 ;; @registry
 
 #?(:clj (swap! registry
-               update ::ident
+               update ::idents
                assoc
-               `uri? p/parse-uri
-               `decimal? p/parse-decimal))
+               `uri? c/to-uri
+               `decimal? c/to-decimal))
 
 (extend-protocol EnumKey
   Number
@@ -216,67 +228,66 @@
 
 (defn find-coercer
   "Tries to find coercer by looking into registry.
-  First looking at ::ident if value is a qualified-keyword or
+  First looking at ::idents if value is a qualified-keyword or
   qualified symbol, or checking if the value is an enum
   value (homogeneous set) and lastly if it's a s-exp form that
   indicates a spec form likely it will return it's generated parser
   from registry ::form , otherwise the it returns the identity parser"
-  [x {:as opts ::keys [enum]}]
-  (let [{:as reg ::keys [ident]}
-        (-> @registry
-            (update ::ident merge (::ident opts))
-            (update ::form merge (::form opts))
-            (cond-> enum (assoc ::enum enum)))]
-    (or (cond (qualified-ident? x)
-              (get ident x)
+  [spec-exp {:as opts ::keys [enums]}]
+  (let [{:as reg ::keys [idents]} (-> @registry
+                                      (update ::idents merge (::idents opts))
+                                      (update ::forms merge (::forms opts))
+                                      (cond-> enums (assoc ::enums enums)))]
+    (or (cond (qualified-ident? spec-exp)
+              (get idents spec-exp)
 
-              (enum? x)
-              (get ident ((::enum reg) (first x)))
+              (enum? spec-exp)
+              (get idents ((::enums reg) (first spec-exp)))
 
-              (sequential? x)
-              ((get-in reg [::form (first x)]) x))
-        p/identity-parser)))
+              (sequential? spec-exp)
+              ((get-in reg [::forms (first spec-exp)]) spec-exp))
+        c/identity)))
 
 (defn infer-coercion
   "Infer a coercer function from a given spec."
-  [k opts]
-  (find-coercer (si/spec->root-sym k)
-                root-spec opts))
+  [spec opts]
+  (find-coercer (si/spec->root-sym spec)
+                opts))
 
 (defn coerce-fn
   "Get the coercing function from a given key. First it tries to lookup
   the coercion on the registry, otherwise try to infer from the
   specs. In case nothing is found, identity function is returned."
-  ([k] (coerce-fn k {}))
-  ([k {::keys [ident] :as opts}]
-   (or (when (qualified-keyword? k)
-         (si/registry-lookup (merge (::ident @registry)
-                                    ident) k))
-       (infer-coercion k opts))))
+  ([spec] (coerce-fn spec {}))
+  ([spec {::keys [idents] :as opts}]
+   (or (when (qualified-keyword? spec)
+         (si/registry-lookup (merge (::idents @registry)
+                                    idents)
+                             spec))
+       (infer-coercion spec opts))))
 
 (defn coerce
-  "Coerce a value x using coercer k. This function will first try to
+  "Coerce a value `x` using coercer `k`. This function will first try to
   use a coercer from the registry, otherwise it will try to infer a
-  coercer from the spec with the same name. Coercion will only be
-  tried if x is a string.  Returns original value in case a coercer
-  can't be found."
-  ([k x] (coerce k x {}))
-  ([k x opts]
-   (if-let [coerce-fn (coerce-fn k opts)]
+  coercer from the spec with the same name. Returns original value in
+  case a coercer can't be found."
+  ([spec x] (coerce spec x {}))
+  ([spec x opts]
+   (if-let [coerce-fn (coerce-fn spec opts)]
      (coerce-fn x opts)
      x)))
 
 (defn coerce!
-  "Like coerce, but will call s/assert on the result, making it throw an error if value
-  doesn't comply after coercion."
-  ([k x] (coerce! k x {}))
-  ([k x opts]
-   (if (simple-keyword? k)
+  "Like coerce, but will call s/assert on the result, making it throw an
+  error if value doesn't comply after coercion."
+  ([spec x] (coerce! spec x {}))
+  ([spec x opts]
+   (if (simple-keyword? spec)
      x
-     (let [coerced (coerce k x opts)]
-       (if (s/valid? k coerced)
+     (let [coerced (coerce spec x opts)]
+       (if (s/valid? spec coerced)
          coerced
-         (throw (ex-info "Failed to coerce value" {:spec  k
+         (throw (ex-info "Failed to coerce value" {:spec spec
                                                    :value x})))))))
 
 (defn conform
@@ -285,31 +296,24 @@
   ([k x opts]
    (s/conform k (coerce k x opts))))
 
-(defn ^:skip-wiki def-impl [k coerce-fn]
-  (assert (and (ident? k) (namespace k)) "k must be namespaced keyword")
-  (swap! registry assoc-in [::ident k] coerce-fn)
+(defn ^:no-doc def-impl [k coerce-fn]
+  (swap! registry assoc-in [::idents k] coerce-fn)
   k)
-
-(s/fdef def-impl
-  :args (s/cat :k qualified-ident?
-               :coercion ifn?)
-  :ret any?)
-
-(defmacro def
-  "Given a namespace-qualified keyword, and a coerce function, makes an entry in the
-  registry mapping k to the coerce function."
-  [k coercion]
-  `(def-impl '~k ~coercion))
 
 (s/fdef def
   :args (s/cat :k qualified-keyword?
                :coercion any?)
   :ret qualified-keyword?)
+(defmacro def
+  "Given a namespace-qualified keyword, and a coerce function, makes an
+  entry in the registry mapping k to the coerce function."
+  [k coercion]
+  `(def-impl '~k ~coercion))
 
 (defn coerce-structure
   "Recursively coerce map values on a structure."
   ([x] (coerce-structure x {}))
-  ([x {::keys [ident op]
+  ([x {::keys [idents op]
        :or {op coerce}
        :as opts}]
    (walk/prewalk (fn [x]
@@ -317,6 +321,6 @@
                      (map? x)
                      (into (empty x)
                            (map (fn [[k v]]
-                                  (let [coercion (get ident k k)]
+                                  (let [coercion (get idents k k)]
                                     [k (op coercion v opts)]))))))
                  x)))
