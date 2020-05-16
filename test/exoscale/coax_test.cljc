@@ -130,6 +130,7 @@
     `int? "42" 42
     `int? 42.0 42
     `int? 42.5 42
+    `(s/int-in 0 100) "42" 42
     `pos-int? "42" 42
     `neg-int? "-42" -42
     `nat-int? "10" 10
@@ -139,6 +140,7 @@
     `double? "42.42" 42.42
     `double? 42.42 42.42
     `double? 42 42.0
+    `(s/double-in 0 100) "42.42" 42.42
     `string? 42 "42"
     `string? :a ":a"
     `string? :foo/bar ":foo/bar"
@@ -167,9 +169,11 @@
     `(s/coll-of int? :kind list?) ["11" "foo" "42"] '(11 "foo" 42)
     `(s/coll-of int? :kind set?) ["11" "foo" "42"] #{11 "foo" 42}
     `(s/coll-of int? :kind vector?) '("11" "foo" "42") [11 "foo" 42]
+    `(s/every int?) ["11" "31" "42"] [11 31 42]
 
     `(s/map-of keyword? int?) {"foo" "42" "bar" "31"} {:foo 42 :bar 31}
     `(s/map-of keyword? int?) "foo" "foo"
+    `(s/every-kv keyword? int?) {"foo" "42" "bar" "31"} {:foo 42 :bar 31}
 
     `(s/or :int int? :double double? :bool boolean?) "42" 42
     `(s/or :double double? :bool boolean?) "42.3" 42.3

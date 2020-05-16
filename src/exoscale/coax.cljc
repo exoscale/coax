@@ -124,11 +124,16 @@
           `s/and gen-coerce-and
           `s/nilable gen-coerce-nilable
           `s/coll-of gen-coerce-coll-of
+          `s/every gen-coerce-coll-of
           `s/map-of gen-coerce-map-of
+          `s/every-kv gen-coerce-map-of
           `s/tuple gen-coerce-tuple
           `s/multi-spec gen-coerce-multi-spec
           `s/keys gen-coerce-keys
-          `s/merge gen-coerce-merge}
+          `s/merge gen-coerce-merge
+          `s/inst-in (constantly c/to-inst)
+          `s/int-in (constantly c/to-long)
+          `s/double-in (constantly c/to-double)}
          ::idents
          {`string? c/to-string
           `number? c/to-double
