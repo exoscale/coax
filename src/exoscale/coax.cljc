@@ -23,6 +23,10 @@
             x
             (partition 2 pairs))))
 
+(defn gen-parse-and [[_ & [pred]]]
+  (fn [x opts]
+    (coerce pred x opts)))
+
 (defn gen-parse-keys
   [[_ & {:keys [req-un opt-un]}]]
   (let [keys-mapping (into {}
@@ -97,6 +101,12 @@
               pred-forms)
       x)))
 
+(defn gen-parse-nilable
+  [[_ pred]]
+  (fn [x opts]
+    (when (some? x)
+      (coerce pred x opts))))
+
 (defprotocol EnumKey
   (enum-key [x]
     "takes enum value `x` and returns matching predicate to resolve
@@ -105,6 +115,8 @@
 (defonce ^:no-doc registry
   (atom {::form
          {`s/or gen-parse-or
+          `s/and gen-parse-and
+          `s/nilable gen-parse-nilable
           `s/coll-of gen-parse-coll-of
           `s/map-of gen-parse-map-of
           `s/tuple gen-parse-tuple
@@ -225,44 +237,11 @@
               ((get-in reg [::form (first x)]) x))
         p/identity-parser)))
 
-(defn nilable-spec? [spec]
-  (and (seq? spec)
-       (= `s/nilable (first spec))))
-
-(defn pull-nilable [spec]
-  (if (nilable-spec? spec)
-    (second spec)
-    spec))
-
-(defn gen-nilable-coercer
-  [coercer]
-  (fn [x opts]
-    (some-> x (coercer opts))))
-
-(defn spec->coercion [root-spec opts]
-  (-> root-spec
-      pull-nilable
-      (find-coercer opts)
-      (cond-> (nilable-spec? root-spec)
-        gen-nilable-coercer)))
-
-(defn nilable-spec->coercion
-  "Pulling out nilable so we can get a real function to get a coercer "
-  [root-spec opts]
-  (-> root-spec
-      pull-nilable
-      si/spec->root-sym
-      (find-coercer opts)
-      (cond-> (nilable-spec? root-spec)
-        gen-nilable-coercer)))
-
 (defn infer-coercion
   "Infer a coercer function from a given spec."
   [k opts]
-  (let [root-spec (si/spec->root-sym k)]
-    (if (nilable-spec? root-spec)
-      (nilable-spec->coercion root-spec opts)
-      (spec->coercion root-spec opts))))
+  (find-coercer (si/spec->root-sym k)
+                root-spec opts))
 
 (defn coerce-fn
   "Get the coercing function from a given key. First it tries to lookup

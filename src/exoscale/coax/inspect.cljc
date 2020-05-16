@@ -20,20 +20,12 @@
   (when (contains? (s/registry) spec)
     (s/form spec)))
 
-(defn form->spec
-  "Return the spec, or first spec when input is a s/and."
-  [and-spec]
-  (cond-> and-spec
-    (and (seq? and-spec)
-         (= (first and-spec) `s/and))
-    second))
-
 (defn spec->root-sym
   "Determine the main spec symbol from a spec form."
   [spec]
-  (let [spec-def (form->spec (or (safe-form spec)
-                                 (accept-symbol spec)
-                                 (accept-symbol-call spec)))]
+  (let [spec-def (or (safe-form spec)
+                     (accept-symbol spec)
+                     (accept-symbol-call spec))]
     (cond-> spec-def
       (qualified-keyword? spec-def)
       recur)))
@@ -42,7 +34,7 @@
   "Look up for the parent coercer using the spec hierarchy."
   [k]
   (or (-> (s/get-spec k) accept-keyword)
-      (-> (form->spec (safe-form k)) accept-keyword)))
+      (-> (safe-form k) accept-keyword)))
 
 (defn registry-lookup
   "Look for the key in registry, if not found try key spec parent recursively."
