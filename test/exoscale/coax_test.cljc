@@ -116,7 +116,6 @@
 
 (deftest test-coerce!
   (is (= (sc/coerce! ::infer-int "123") 123))
-  (is (= (sc/coerce! :infer-int "123") "123"))
   (is (thrown-with-msg? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error) #"Failed to coerce value" (sc/coerce! ::infer-int "abc"))))
 
 (deftest test-conform
@@ -297,12 +296,14 @@
             ::body 16
             ::arms [4 4]
             ::legs [7 7]
+            :foo "bar"
             :name :john}
            (sc/coerce ::animal
                       {::head "1"
                        ::body "16"
                        ::arms ["4" "4"]
                        ::legs ["7" "7"]
+                       :foo "bar"
                        :name "john"}
                       {::sc/idents
                        {::head c/to-long

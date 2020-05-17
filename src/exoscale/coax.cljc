@@ -162,8 +162,6 @@
           `zero? c/to-long}
          ::enums #'enum-key}))
 
-;; @registry
-
 #?(:clj (swap! registry
                update ::idents
                assoc
@@ -196,10 +194,7 @@
   (enum-key [x] `uuid?)
 
   nil
-  (enum-key [x] `nil?)
-
-  Object
-  (enum-key [x] nil))
+  (enum-key [x] `nil?))
 
 #?(:clj
    (extend-protocol EnumKey
@@ -210,7 +205,14 @@
      URI
      (enum-key [x] `uri?)
      BigDecimal
-     (enum-key [x] `decimal?)))
+     (enum-key [x] `decimal?)
+     Object
+     (enum-key [x] nil)))
+
+#?(:cljs
+   (extend-protocol EnumKey
+     :default
+     (enum-key [x] nil)))
 
 (defn enum? [x]
   "If the spec is given as a set, and every member of the set is the same type,
