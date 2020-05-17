@@ -4,12 +4,11 @@
             [exoscale.coax.coercer :as c]
             [clojure.spec.alpha :as s]
             [clojure.walk :as walk])
-  (:import (clojure.lang Keyword)
-           #?@(:clj
-               ((java.util Date UUID)
-                (java.time Instant)
-                (java.net URI)
-                (java.time.format DateTimeFormatter)))))
+  #?(:clj
+     (:import (clojure.lang Keyword)
+              (java.util Date UUID)
+              (java.time Instant)
+              (java.net URI))))
 
 (declare coerce)
 

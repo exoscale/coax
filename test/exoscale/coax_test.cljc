@@ -219,16 +219,10 @@
                   :result res}))))))
 
 #?(:clj (deftest test-coerce-inst
-          ;; use .getTime to avoid java.sql.Timestamp/java.util.Date differences
-          ;; we don't check s/valid? here, just that the date/time roundtrips
-          (are [input output] (= (.getTime (sc/coerce `inst? input))
-                                 (.getTime output))
-                              "9/28/2018 22:06" #inst "2018-09-28T22:06"
-                              (str "Fri Sep 28 22:06:52 "
-                                (.getID (java.util.TimeZone/getDefault))
-                                " 2018") #inst "2018-09-28T22:06:52"
-                              "2018-09-28" #inst "2018-09-28"
-                              "9/28/2018" #inst "2018-09-28")))
+          (are [input output] (= (sc/coerce `inst? input)
+                                 output)
+            "2020-05-17T21:37:57.830-00:00" #inst "2020-05-17T21:37:57.830-00:00"
+            "2018-09-28" #inst "2018-09-28")))
 
 (deftest test-coerce-inference-test
   (are [keyword input output] (= (sc/coerce keyword input) output)
@@ -367,6 +361,8 @@
 (defmethod multi :default [_] (s/keys :req-un [::foo]))
 (defmethod multi :kw [_] ::unqualified)
 (s/def ::multi (s/multi-spec multi :hit))
+
+;; (s/form ::multi)
 
 (deftest test-multi-spec
   (is (= {:not "foo"} (sc/coerce ::multi {:not "foo"})))
