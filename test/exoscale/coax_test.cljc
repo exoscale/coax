@@ -1,5 +1,6 @@
 (ns exoscale.coax-test
-  #?(:cljs (:require-macros [cljs.test :refer [deftest testing is are run-tests]]))
+  #?(:cljs (:require-macros [cljs.test :refer [deftest testing is are run-tests]]
+                            [exoscale.coax :as sc]))
   (:require
     #?(:clj [clojure.test :refer [deftest testing is are]])
     [clojure.spec.alpha :as s]
@@ -8,13 +9,11 @@
     [clojure.test.check.generators]
     [clojure.test.check.properties :as prop]
     [clojure.spec.test.alpha :as st]
-    #?(:clj
-       [clojure.test.check.clojure-test :refer [defspec]])
+    #?(:clj [clojure.test.check.clojure-test :refer [defspec]])
     #?(:cljs [clojure.test.check.clojure-test :refer-macros [defspec]])
     [exoscale.coax :as sc]
-    [exoscale.coax.parser :as p])
-  #?(:clj
-     (:import (java.net URI))))
+    [exoscale.coax.coercer :as c])
+  #?(:clj (:import (java.net URI))))
 
 #?(:clj (st/instrument))
 
@@ -26,10 +25,10 @@
 
 #?(:clj (s/def ::infer-decimal? decimal?))
 
-(sc/def ::some-coercion p/parse-long)
+(sc/def ::some-coercion c/to-long)
 
 (s/def ::first-layer int?)
-(sc/def ::first-layer (fn [x _] (inc (p/parse-long x))))
+(sc/def ::first-layer (fn [x _] (inc (c/to-long x nil))))
 
 (s/def ::second-layer ::first-layer)
 (s/def ::second-layer-and (s/and ::first-layer #(> % 10)))
@@ -71,6 +70,8 @@
 (s/def ::unevaluatable-spec (letfn [(pred [x] (string? x))]
                               (s/spec pred)))
 
+(sc/def ::some-coercion c/to-long)
+
 (deftest test-coerce-from-registry
   (testing "it uses the registry to coerce a key"
     (is (= (sc/coerce ::some-coercion "123") 123)))
@@ -83,7 +84,7 @@
     (is (= (sc/coerce ::infer-nilable nil) nil))
     (is (= (sc/coerce ::infer-nilable "") ""))
     (is (= (sc/coerce ::nilable-int "10") 10))
-    (is (= (sc/coerce ::nilable-int "10" {::sc/ident {`int? (fn [x _] (keyword x))}}) :10))
+    (is (= (sc/coerce ::nilable-int "10" {::sc/idents {`int? (fn [x _] (keyword x))}}) :10))
     (is (= (sc/coerce ::nilable-pos-int "10") 10))
 
     (is (= (sc/coerce ::nilable-string nil) nil))
@@ -116,7 +117,6 @@
 
 (deftest test-coerce!
   (is (= (sc/coerce! ::infer-int "123") 123))
-  (is (= (sc/coerce! :infer-int "123") "123"))
   (is (thrown-with-msg? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error) #"Failed to coerce value" (sc/coerce! ::infer-int "abc"))))
 
 (deftest test-conform
@@ -130,6 +130,7 @@
     `int? "42" 42
     `int? 42.0 42
     `int? 42.5 42
+    `(s/int-in 0 100) "42" 42
     `pos-int? "42" 42
     `neg-int? "-42" -42
     `nat-int? "10" 10
@@ -139,6 +140,7 @@
     `double? "42.42" 42.42
     `double? 42.42 42.42
     `double? 42 42.0
+    `(s/double-in 0 100) "42.42" 42.42
     `string? 42 "42"
     `string? :a ":a"
     `string? :foo/bar ":foo/bar"
@@ -164,9 +166,14 @@
 
     `(s/coll-of int?) ["11" "31" "42"] [11 31 42]
     `(s/coll-of int?) ["11" "foo" "42"] [11 "foo" 42]
+    `(s/coll-of int? :kind list?) ["11" "foo" "42"] '(11 "foo" 42)
+    `(s/coll-of int? :kind set?) ["11" "foo" "42"] #{11 "foo" 42}
+    `(s/coll-of int? :kind vector?) '("11" "foo" "42") [11 "foo" 42]
+    `(s/every int?) ["11" "31" "42"] [11 31 42]
 
     `(s/map-of keyword? int?) {"foo" "42" "bar" "31"} {:foo 42 :bar 31}
     `(s/map-of keyword? int?) "foo" "foo"
+    `(s/every-kv keyword? int?) {"foo" "42" "bar" "31"} {:foo 42 :bar 31}
 
     `(s/or :int int? :double double? :bool boolean?) "42" 42
     `(s/or :double double? :bool boolean?) "42.3" 42.3
@@ -179,6 +186,7 @@
 (def test-gens
   {`inst? (s/gen (s/inst-in #inst "1980" #inst "9999"))})
 
+
 #?(:cljs
    (defn ->js [var-name]
      (-> (str var-name)
@@ -189,39 +197,35 @@
 
 (defn safe-gen [s sp]
   (try
-    (or (test-gens s) (s/gen sp))
+    (or (test-gens s)
+        (s/gen sp))
     (catch #?(:clj Exception :cljs :default) _ nil)))
 
-(deftest test-coerce-generative
-  (doseq [s (->> @sc/registry
-                 ::sc/ident
-                 (keys)
-                 (filter symbol?))
-          :let [sp #?(:clj @(resolve s)
-                      :cljs (->js s))
-                gen        (safe-gen s sp)]
-          :when gen]
-    (let [res (tc/quick-check 100
-                (prop/for-all [v gen]
-                  (s/valid? sp (sc/coerce s (-> (pr-str v)
-                                                (str/replace #"^#[^\"]+\"|\"]?$"
-                                                  ""))))))]
-      (if-not (= true (:result res))
-        (throw (ex-info (str "Error coercing " s)
-                 {:symbol s
-                  :result res}))))))
+#?(:clj
+   ;; FIXME won't run on cljs
+   (deftest test-coerce-generative
+     (doseq [s (->> (sc/registry)
+                    ::sc/idents
+                    (keys)
+                    (filter symbol?))
+             :let [sp #?(:clj @(resolve s) :cljs (->js s))
+                   gen (safe-gen s sp)]
+             :when gen]
+       (let [res (tc/quick-check 100
+                                 (prop/for-all [v gen]
+                                               (s/valid? sp (sc/coerce s (-> (pr-str v)
+                                                                             (str/replace #"^#[^\"]+\"|\"]?$"
+                                                                                          ""))))))]
+         (if-not (= true (:result res))
+           (throw (ex-info (str "Error coercing " s)
+                           {:symbol s
+                            :result res})))))))
 
 #?(:clj (deftest test-coerce-inst
-          ;; use .getTime to avoid java.sql.Timestamp/java.util.Date differences
-          ;; we don't check s/valid? here, just that the date/time roundtrips
-          (are [input output] (= (.getTime (sc/coerce `inst? input))
-                                 (.getTime output))
-                              "9/28/2018 22:06" #inst "2018-09-28T22:06"
-                              (str "Fri Sep 28 22:06:52 "
-                                (.getID (java.util.TimeZone/getDefault))
-                                " 2018") #inst "2018-09-28T22:06:52"
-                              "2018-09-28" #inst "2018-09-28"
-                              "9/28/2018" #inst "2018-09-28")))
+          (are [input output] (= (sc/coerce `inst? input)
+                                 output)
+            "2020-05-17T21:37:57.830-00:00" #inst "2020-05-17T21:37:57.830-00:00"
+            "2018-09-28" #inst "2018-09-28")))
 
 (deftest test-coerce-inference-test
   (are [keyword input output] (= (sc/coerce keyword input) output)
@@ -249,10 +253,9 @@
           :sub            {::infer-int 42}}))
   (is (= (sc/coerce-structure {::some-coercion "321"
                                ::not-defined   "bla"
-                               :unqualified    "12"
+                               :unqualified    12
                                :sub            {::infer-int "42"}}
-           {::sc/ident {::not-defined `keyword?
-                        :unqualified  ::infer-int}})
+           {::sc/idents {::not-defined `keyword?}})
          {::some-coercion 321
           ::not-defined   :bla
           :unqualified    12
@@ -296,29 +299,31 @@
             ::body 16
             ::arms [4 4]
             ::legs [7 7]
+            :foo "bar"
             :name :john}
            (sc/coerce ::animal
                       {::head "1"
                        ::body "16"
                        ::arms ["4" "4"]
                        ::legs ["7" "7"]
+                       :foo "bar"
                        :name "john"}
-                      {::sc/ident
-                       {::head p/parse-long
-                        ::leg p/parse-long
-                        ::name p/parse-keyword}}))
+                      {::sc/idents
+                       {::head c/to-long
+                        ::leg c/to-long
+                        ::name c/to-keyword}}))
         "Coerce with option form")
-    (is (= 1 (sc/coerce `string? "1" {::sc/ident {`string? p/parse-long}}))
+    (is (= 1 (sc/coerce `string? "1" {::sc/idents {`string? c/to-long}}))
         "overrides works on qualified-idents")
 
     (is (= [1] (sc/coerce `(s/coll-of string?) ["1"]
-                          {::sc/ident {`string? p/parse-long}}))
+                          {::sc/idents {`string? c/to-long}}))
         "overrides works on qualified-idents, also with composites")
 
     (is (= ["foo" "bar" "baz"]
            (sc/coerce `vector?
                       "foo,bar,baz"
-                      {::sc/ident {`vector? (fn [x _] (str/split x #"[,]"))}}))
+                      {::sc/idents {`vector? (fn [x _] (str/split x #"[,]"))}}))
         "override on real world use case with vector?")))
 
 (s/def ::foo int?)
@@ -356,7 +361,8 @@
       "garbage is passthrough"))
 
 (def d :kw)
-(defmulti multi #'d)
+;; no vars in cljs
+#?(:clj (defmulti multi #'d) :cljs (defmulti multi :kw))
 (defmethod multi :default [_] (s/keys :req-un [::foo]))
 (defmethod multi :kw [_] ::unqualified)
 (s/def ::multi (s/multi-spec multi :hit))
