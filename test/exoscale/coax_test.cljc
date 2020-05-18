@@ -1,5 +1,6 @@
 (ns exoscale.coax-test
-  #?(:cljs (:require-macros [cljs.test :refer [deftest testing is are run-tests]]))
+  #?(:cljs (:require-macros [cljs.test :refer [deftest testing is are run-tests]]
+                            [exoscale.coax :as sc]))
   (:require
     #?(:clj [clojure.test :refer [deftest testing is are]])
     [clojure.spec.alpha :as s]
@@ -8,13 +9,11 @@
     [clojure.test.check.generators]
     [clojure.test.check.properties :as prop]
     [clojure.spec.test.alpha :as st]
-    #?(:clj
-       [clojure.test.check.clojure-test :refer [defspec]])
+    #?(:clj [clojure.test.check.clojure-test :refer [defspec]])
     #?(:cljs [clojure.test.check.clojure-test :refer-macros [defspec]])
     [exoscale.coax :as sc]
     [exoscale.coax.coercer :as c])
-  #?(:clj
-     (:import (java.net URI))))
+  #?(:clj (:import (java.net URI))))
 
 #?(:clj (st/instrument))
 
@@ -70,6 +69,8 @@
 
 (s/def ::unevaluatable-spec (letfn [(pred [x] (string? x))]
                               (s/spec pred)))
+
+(sc/def ::some-coercion c/to-long)
 
 (deftest test-coerce-from-registry
   (testing "it uses the registry to coerce a key"
@@ -185,6 +186,7 @@
 (def test-gens
   {`inst? (s/gen (s/inst-in #inst "1980" #inst "9999"))})
 
+
 #?(:cljs
    (defn ->js [var-name]
      (-> (str var-name)
@@ -195,27 +197,29 @@
 
 (defn safe-gen [s sp]
   (try
-    (or (test-gens s) (s/gen sp))
+    (or (test-gens s)
+        (s/gen sp))
     (catch #?(:clj Exception :cljs :default) _ nil)))
 
-(deftest test-coerce-generative
-  (doseq [s (->> @sc/registry
-                 ::sc/idents
-                 (keys)
-                 (filter symbol?))
-          :let [sp #?(:clj @(resolve s)
-                      :cljs (->js s))
-                gen        (safe-gen s sp)]
-          :when gen]
-    (let [res (tc/quick-check 100
-                (prop/for-all [v gen]
-                  (s/valid? sp (sc/coerce s (-> (pr-str v)
-                                                (str/replace #"^#[^\"]+\"|\"]?$"
-                                                  ""))))))]
-      (if-not (= true (:result res))
-        (throw (ex-info (str "Error coercing " s)
-                 {:symbol s
-                  :result res}))))))
+#?(:clj
+   ;; FIXME won't run on cljs
+   (deftest test-coerce-generative
+     (doseq [s (->> (sc/registry)
+                    ::sc/idents
+                    (keys)
+                    (filter symbol?))
+             :let [sp #?(:clj @(resolve s) :cljs (->js s))
+                   gen (safe-gen s sp)]
+             :when gen]
+       (let [res (tc/quick-check 100
+                                 (prop/for-all [v gen]
+                                               (s/valid? sp (sc/coerce s (-> (pr-str v)
+                                                                             (str/replace #"^#[^\"]+\"|\"]?$"
+                                                                                          ""))))))]
+         (if-not (= true (:result res))
+           (throw (ex-info (str "Error coercing " s)
+                           {:symbol s
+                            :result res})))))))
 
 #?(:clj (deftest test-coerce-inst
           (are [input output] (= (sc/coerce `inst? input)
@@ -249,10 +253,9 @@
           :sub            {::infer-int 42}}))
   (is (= (sc/coerce-structure {::some-coercion "321"
                                ::not-defined   "bla"
-                               :unqualified    "12"
+                               :unqualified    12
                                :sub            {::infer-int "42"}}
-           {::sc/idents {::not-defined `keyword?
-                        :unqualified  ::infer-int}})
+           {::sc/idents {::not-defined `keyword?}})
          {::some-coercion 321
           ::not-defined   :bla
           :unqualified    12
@@ -358,12 +361,11 @@
       "garbage is passthrough"))
 
 (def d :kw)
-(defmulti multi #'d)
+;; no vars in cljs
+#?(:clj (defmulti multi #'d) :cljs (defmulti multi :kw))
 (defmethod multi :default [_] (s/keys :req-un [::foo]))
 (defmethod multi :kw [_] ::unqualified)
 (s/def ::multi (s/multi-spec multi :hit))
-
-;; (s/form ::multi)
 
 (deftest test-multi-spec
   (is (= {:not "foo"} (sc/coerce ::multi {:not "foo"})))

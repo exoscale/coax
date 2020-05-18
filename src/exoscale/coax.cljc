@@ -49,14 +49,14 @@
       ;; either we have a `:kind` and coerce to that, or we
       ;; just `empty` the original
       (let [xs (into (condp = kind
-                    `vector? []
-                    `set? #{}
-                    `coll? '()
-                    `list? '()
-                    ;; else
-                    (empty x))
-                  (map #(coerce spec % opts))
-                  x)]
+                       `vector? []
+                       `set? #{}
+                       `coll? '()
+                       `list? '()
+                       ;; else
+                       (empty x))
+                     (map #(coerce spec % opts))
+                     x)]
         (cond-> xs (list? xs)
                 reverse))
       x)))
@@ -78,8 +78,14 @@
             specs))))
 
 (defn gen-coerce-multi-spec
-  [[_ f retag & _]]
-  (let [f (resolve f)]
+  [[_ f retag & _ :as spec-expr]]
+  (let [f #?(:clj (resolve f)
+             ;; wall-hack
+             :cljs (->> (s/registry)
+                       vals
+                       (filter #(= spec-expr (s/form %)))
+                       first
+                       .-mmvar))]
     (fn [x opts]
       (if (associative? x)
         (coerce (s/form (f (retag x)))
@@ -106,6 +112,7 @@
               spec-forms)
       x)))
 
+
 (defn gen-coerce-nilable
   [[_ spec]]
   (fn [x opts]
@@ -117,7 +124,7 @@
     "takes enum value `x` and returns matching predicate to resolve
     coercer from registry"))
 
-(defonce ^:no-doc registry
+(defonce ^:private registry-ref
   (atom {::forms
          {`s/or gen-coerce-or
           `s/and gen-coerce-and
@@ -162,29 +169,28 @@
           `zero? c/to-long}
          ::enums #'enum-key}))
 
-#?(:clj (swap! registry
+(defn registry
+  "returns the registry map, prefer 'get-spec' to lookup a spec by name"
+  []
+  @registry-ref)
+
+#?(:clj (swap! registry-ref
                update ::idents
                assoc
                `uri? c/to-uri
                `decimal? c/to-decimal))
 
 (extend-protocol EnumKey
-  Number
+  #?(:clj Number :cljs number)
   (enum-key [x] `number?)
 
-  Long
-  (enum-key [x] `int?)
-
-  Double
+  #?(:clj Double :cljs double)
   (enum-key [x] `double?)
 
-  Float
-  (enum-key [x] `float?)
-
-  String
+  #?(:clj String :cljs string)
   (enum-key [x] `string?)
 
-  Boolean
+  #?(:clj Boolean :cljs boolean)
   (enum-key [x] `boolean?)
 
   Keyword
@@ -194,10 +200,17 @@
   (enum-key [x] `uuid?)
 
   nil
-  (enum-key [x] `nil?))
+  (enum-key [x] `nil?)
+
+  #?(:clj Object :cljs default)
+  (enum-key [x] nil))
 
 #?(:clj
    (extend-protocol EnumKey
+     Float
+     (enum-key [x] `float?)
+     Long
+     (enum-key [x] `int?)
      Instant
      (enum-key [x] `inst?)
      Date
@@ -205,18 +218,12 @@
      URI
      (enum-key [x] `uri?)
      BigDecimal
-     (enum-key [x] `decimal?)
-     Object
-     (enum-key [x] nil)))
+     (enum-key [x] `decimal?)))
 
-#?(:cljs
-   (extend-protocol EnumKey
-     :default
-     (enum-key [x] nil)))
-
-(defn enum? [x]
+(defn enum?
   "If the spec is given as a set, and every member of the set is the same type,
   then we can infer a coercion from that shared type."
+  [x]
   (when (set? x)
     (let [x0 (first x)
           t (type x0)]
@@ -234,7 +241,7 @@
   indicates a spec form likely it will return it's generated coercer
   from registry ::form , otherwise the it returns the identity coercer"
   [spec-exp {:as opts ::keys [enums]}]
-  (let [{:as reg ::keys [idents]} (-> @registry
+  (let [{:as reg ::keys [idents]} (-> @registry-ref
                                       (update ::idents merge (::idents opts))
                                       (update ::forms merge (::forms opts))
                                       (cond-> enums (assoc ::enums enums)))]
@@ -248,12 +255,6 @@
               ((get-in reg [::forms (first spec-exp)]) spec-exp))
         c/identity)))
 
-(defn infer-coercion
-  "Infer a coercer function from a given spec."
-  [spec opts]
-  (find-coercer (si/spec->root-sym spec)
-                opts))
-
 (defn coerce-fn
   "Get the coercing function from a given key. First it tries to lookup
   the coercion on the registry, otherwise try to infer from the
@@ -261,10 +262,11 @@
   ([spec] (coerce-fn spec {}))
   ([spec {::keys [idents] :as opts}]
    (or (when (qualified-keyword? spec)
-         (si/registry-lookup (merge (::idents @registry)
+         (si/registry-lookup (merge (::idents @registry-ref)
                                     idents)
                              spec))
-       (infer-coercion spec opts))))
+       (find-coercer (si/spec->root-sym spec)
+                     opts))))
 
 (defn coerce
   "Coerce a value `x` using coercer `k`. This function will first try to
@@ -282,13 +284,11 @@
   error if value doesn't comply after coercion."
   ([spec x] (coerce! spec x {}))
   ([spec x opts]
-   (if (simple-keyword? spec)
-     x
-     (let [coerced (coerce spec x opts)]
-       (if (s/valid? spec coerced)
-         coerced
-         (throw (ex-info "Failed to coerce value" {:spec spec
-                                                   :value x})))))))
+   (let [coerced (coerce spec x opts)]
+     (if (s/valid? spec coerced)
+       coerced
+       (throw (ex-info "Failed to coerce value" {:spec spec
+                                                 :value x}))))))
 
 (defn conform
   "Like coerce, and will call s/conform on the result."
@@ -297,7 +297,7 @@
    (s/conform spec (coerce spec x opts))))
 
 (defn ^:no-doc def-impl [k coerce-fn]
-  (swap! registry assoc-in [::idents k] coerce-fn)
+  (swap! registry-ref assoc-in [::idents k] coerce-fn)
   k)
 
 (s/fdef def
@@ -321,5 +321,7 @@
                      (map? x)
                      (into (empty x)
                            (map (fn [[k v]]
-                                  [k (op (get idents k k) v opts)])))))
+                                  (if (qualified-keyword? k)
+                                    [k (op (get idents k k) v opts)]
+                                    [k v]))))))
                  x)))
