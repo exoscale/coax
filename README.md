@@ -239,7 +239,7 @@ Examples from predicate to coerced value:
 
 ## License
 
-* [exoscale.coax original license](https://github.com/wilkerlucio/spec-coerce/blob/master/LICENSE)
-  Copyright © 2017 Wilker Lúcio -  Distributed under the MIT License.
-
 * License Copyright © 2020 Exoscale - Distributed under ISC License
+
+* [spec-coerce original license](https://github.com/wilkerlucio/spec-coerce/blob/master/LICENSE)
+  Copyright © 2017 Wilker Lúcio -  Distributed under the MIT License.
