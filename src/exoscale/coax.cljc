@@ -80,7 +80,8 @@
 (defn gen-coerce-multi-spec
   [[_ f retag & _ :as spec-expr]]
   (let [f #?(:clj (resolve f)
-             ;; wall-hack
+             ;; wall-hack, inspired by spec-tools internals until we
+             ;; get a better way to do it
              :cljs (->> (s/registry)
                        vals
                        (filter #(= spec-expr (s/form %)))
