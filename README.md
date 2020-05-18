@@ -6,7 +6,7 @@ It started as a fork of
 [spec-coerce](https://github.com/wilkerlucio/spec-coerce), which
 brings a really nice approach to spec based coercion, very much in
 line with the spec api. Major props to @wilkerlucio for his work on
-that library it really open our eyes on how such an api should look
+that library it really opened our eyes on how such an api should look
 like.
 
 As we were patching/changing it internally more and more to fit our
