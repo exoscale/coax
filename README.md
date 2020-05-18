@@ -10,9 +10,9 @@ that library it really open our eyes on how such an api should look
 like.
 
 As we were patching/changing it internally more and more to fit our
-needs, it has reached a state where the internals are quite different
-and can do things spec-coerce cannot currently do, in some areas we
-also simplified the internals.
+needs, it has reached a state where the internals are quite different,
+it can also do things spec-coerce does not support and change some
+defaults that didn't match our usage.
 
 Coax is centred around its own registry for coercion rules, when a
 coercion is not registered it can infer in most cases what to do to
