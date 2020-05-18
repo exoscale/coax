@@ -33,7 +33,7 @@ The typical (infered) example would be :
 
 You can register a coercer per spec if needed
 
-``` clojureclj
+```clj
 (s/def ::foo string?)
 (c/def ::foo (fn [x opts] (str "from-registry: " x)))
 (c/coerce ::foo "bar") -> "from-registry: bar"
@@ -54,8 +54,8 @@ merged with the internal registry at coerce time.
 Coercers are functions of 2 args, the value, and the options coerce
 received.
 
-Overrides also works on any qualified-ident (keyword, registered specs
-or symbols), which is something spec-coerce cannot do currently.
+Overrides also works on any qualified-ident (registered specs or
+symbols/fns), which is something spec-coerce cannot do currently.
 
 The typical example would be :
 
@@ -78,8 +78,7 @@ your own, that also makes it potentially ready for spec2.
 
 ## Documentation
 
-[![cljdoc
-badge](https://cljdoc.xyz/badge/exoscale/coax)](https://cljdoc.xyz/d/exoscale/coax/CURRENT)
+[![cljdocbadge](https://cljdoc.xyz/badge/exoscale/coax)](https://cljdoc.xyz/d/exoscale/coax/CURRENT)
 
 ## Installation
 
