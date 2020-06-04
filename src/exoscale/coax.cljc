@@ -288,8 +288,9 @@
    (let [coerced (coerce spec x opts)]
      (if (s/valid? spec coerced)
        coerced
-       (throw (ex-info "Failed to coerce value" {:spec spec
-                                                 :value x}))))))
+       (throw (ex-info "Invalid coerced value"
+                       {:type ::invalid-coerced-value
+                        :explain-data (s/explain-data spec x)}))))))
 
 (defn conform
   "Like coerce, and will call s/conform on the result."
