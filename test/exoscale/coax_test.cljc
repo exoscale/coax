@@ -117,7 +117,8 @@
 
 (deftest test-coerce!
   (is (= (sc/coerce! ::infer-int "123") 123))
-  (is (thrown-with-msg? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error) #"Failed to coerce value" (sc/coerce! ::infer-int "abc"))))
+  (is (thrown-with-msg? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+                        #"Invalid coerced value" (sc/coerce! ::infer-int "abc"))))
 
 (deftest test-conform
   (is (= (sc/conform ::or-example "true") [:bool true])))
