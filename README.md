@@ -73,7 +73,7 @@ your own, that also makes it potentially ready for spec2.
 
 ```clj
 (s/coerce ::foo (s/coll-of keyword?)
-          {::c/form {`s/coll-of (fn [[_ spec]] (fn [x opts] do-something-crazy-with-spec+the-value))}})
+          {::c/forms {`s/coll-of (fn [[_ spec]] (fn [x opts] do-something-crazy-with-spec+the-value))}})
 ```
 
 ## Documentation
