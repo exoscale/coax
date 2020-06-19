@@ -80,7 +80,7 @@ easily for instance generate open-api definitions using these.
 
 ## Documentation
 
-[![cljdocbadge](https://cljdoc.xyz/badge/exoscale/coax)](https://cljdoc.xyz/d/exoscale/coax/CURRENT)
+[![cljdocbadge](https://cljdoc.xyz/badge/exoscale/coax)](https://cljdoc.org/d/exoscale/coax/CURRENT/api/exoscale.coax)
 
 ## Installation
 
