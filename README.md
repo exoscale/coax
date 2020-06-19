@@ -18,7 +18,8 @@ Coax is centred around its own registry for coercion rules, when a
 coercion is not registered it can infer in most cases what to do to
 coerce a value into something that conforms to a spec. It also
 supports `overrides` to enable custom coercion from any spec type,
-including "symbolic specs" or predicates.
+including spec `forms` (like s/coll-of & co) or just `idents`
+(predicates, registered specs).
 
 ## What
 
@@ -48,7 +49,7 @@ merged with the internal registry at coerce time.
 
 ```clj
 (s/def ::foo keyword?)
-(c/coerce ::foo "bar" {::c/idents {::foo (fn [x opts] (symbol x)})}) -> bar
+(c/coerce ::foo "bar" {::c/idents {::foo (fn [x opts] (str "keyword:" x)})}) -> "keyword:bar"
 ```
 
 Coercers are functions of 2 args, the value, and the options coerce
@@ -68,12 +69,12 @@ You can specify multiple overrides per coerce call.
 
 Another thing we added is the ability to reach and change the
 behaviour of coercer generators via ::c/forms, essentially allowing
-you to support any "symbolic" type spec like inst-in, coll-of, ..., or
-your own, that also makes it potentially ready for spec2.
+you to support any spec form like inst-in, coll-of, .... You could
+easily for instance generate open-api definitions using these.
 
 ```clj
 (s/coerce ::foo (s/coll-of keyword?)
-          {::c/forms {`s/coll-of (fn [[_ spec]] (fn [x opts] do-something-crazy-with-spec+the-value))}})
+          {::c/forms {`s/coll-of (fn [[_ spec]] (fn [x opts] (do-something-crazy-with-spec+the-value spec x opts)))}})
 ```
 
 ## Documentation
