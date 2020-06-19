@@ -17,8 +17,8 @@ defaults that didn't match our usage.
 Coax is centred around its own registry for coercion rules, when a
 coercion is not registered it can infer in most cases what to do to
 coerce a value into something that conforms to a spec. It also
-supports `overrides` to enable custom coercion from any spec type,
-including spec `forms` (like s/coll-of & co) or just `idents`
+supports "coerce time" options to enable custom coercion from any spec
+type, including spec `forms` (like s/coll-of & co) or just `idents`
 (predicates, registered specs).
 
 ## What
@@ -62,7 +62,8 @@ The typical example would be :
 
 ```clj
 (s/def ::foo (s/coll-of keyword?))
-(c/coerce ::foo ["a" "b"] {::c/idents {`keyword? (fn [x opts] (symbol x)})}) -> [a b]
+;; we'll namespace all keywords in that coll-of
+(c/coerce ::foo ["a" "b"] {::c/idents {`keyword? (fn [x opts] (keyword "foo" x)})}) -> [foo/a foo/b]
 ```
 
 You can specify multiple overrides per coerce call.
