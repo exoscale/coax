@@ -180,6 +180,9 @@
     `(s/or :double double? :bool boolean?) "42.3" 42.3
     `(s/or :int int? :double double? :bool boolean?) "true" true
 
+    `(s/or :b keyword? :a string?) "abc" :abc
+    `(s/or :a string? :b keyword?) "abc" "abc"
+
     #?@(:clj [`uri? "http://site.com" (URI. "http://site.com")])
     #?@(:clj [`decimal? "42.42" 42.42M
               `decimal? "42.42M" 42.42M])))
