@@ -53,7 +53,9 @@ merged with the internal registry at coerce time.
 ```
 
 Coercers are functions of 2 args, the value, and the options coerce
-received.
+received. They return either a coerced value or
+`:exoscale.coax/invalid`, which indicates we didn't know how to coerce
+that value, in which case s/coerce will set the value to the input.
 
 Overrides also works on any qualified-ident (registered specs or
 symbols/fns), which is something spec-coerce cannot do currently.
