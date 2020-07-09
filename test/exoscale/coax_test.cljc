@@ -17,14 +17,6 @@
 
 #?(:clj (st/instrument))
 
-(defn safe-coerce
-  [coercer]
-  (fn [x opts]
-    (let [x' (coercer x opts)]
-      (if (= :exoscale.coax/invalid x')
-        x
-        x'))))
-
 (s/def ::infer-int int?)
 (s/def ::infer-and-spec (s/and int? #(> % 10)))
 (s/def ::infer-and-spec-indirect (s/and ::infer-int #(> % 10)))
