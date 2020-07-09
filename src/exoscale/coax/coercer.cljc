@@ -7,110 +7,143 @@
                    (java.time LocalDate LocalDateTime ZoneId)
                    (java.time.format DateTimeFormatter))))
 
+(defmacro invalid-on-throw!
+  [& body]
+  `(try
+     ~@body
+     (catch #?(:clj Exception :cljs :default) _#
+       :exoscale.coax/invalid)))
+
 (defn to-string
   [x _]
   (str x))
 
 (defn to-long
   [x _]
-  (cond (string? x)
-        (try
-          #?(:clj (Long/parseLong x)
-             :cljs (if (= "NaN" x)
-                     js/NaN
-                     (let [v (js/parseInt x)]
-                       (if (js/isNaN v) x v))))
-          (catch #?(:clj Exception :cljs :default) _
-            x))
-        (number? x) (long x)
-        :else x))
+  (invalid-on-throw!
+   (cond (string? x)
+         #?(:clj (Long/parseLong x)
+            :cljs (if (= "NaN" x)
+                    js/NaN
+                    (let [v (js/parseInt x)]
+                      (if (js/isNaN v) x v))))
+         (number? x) (long x)
+         :else :exoscale.coax/invalid)))
 
 (defn to-double
   [x _]
-  (cond (string? x)
-        (try
-          #?(:clj  (case x
-                     "##-Inf"    ##-Inf
-                     "##Inf"     ##Inf
-                     "##NaN"     ##NaN
-                     "NaN"       ##NaN
-                     "Infinity"  ##Inf
-                     "-Infinity" ##-Inf
-                     (Double/parseDouble x))
-             :cljs (if (= "NaN" x)
-                     js/NaN
-                     (let [v (js/parseFloat x)]
-                       (if (js/isNaN v) x v))))
-          (catch #?(:clj Exception :cljs :default) _
-            x))
-        (number? x) (double x)
-        :else x))
+  (invalid-on-throw!
+   (cond (string? x)
+         #?(:clj  (case x
+                    "##-Inf"    ##-Inf
+                    "##Inf"     ##Inf
+                    "##NaN"     ##NaN
+                    "NaN"       ##NaN
+                    "Infinity"  ##Inf
+                    "-Infinity" ##-Inf
+                    (Double/parseDouble x))
+            :cljs (if (= "NaN" x)
+                    js/NaN
+                    (let [v (js/parseFloat x)]
+                      (if (js/isNaN v) x v))))
+         (number? x) (double x)
+         :else :exoscale.coax/invalid)))
+
+(defn to-number
+  [x opts]
+  (if (number? x)
+    x
+    (let [l (to-long x opts)
+          d (to-double x opts)]
+      (if (and (every? number? [l d])
+               (== d l))
+        l
+        d))))
 
 (defn to-uuid
   [x _]
-  (if (string? x)
-    (try
+  (cond
+    (uuid? x)
+    x
+    (string? x)
+    (invalid-on-throw!
       #?(:clj  (UUID/fromString x)
-         :cljs (uuid x))
-      (catch #?(:clj Exception :cljs :default) _
-        x))
-    x))
+         :cljs (uuid x)))
+    :else :exoscale.coax/invalid))
 
 (defn to-inst
   [x _]
-  (if (string? x)
-    (try
+  (cond
+    (inst? x)
+    x
+    (string? x)
+    (invalid-on-throw!
       #?(:clj (clojure.instant/read-instant-date x)
-         :cljs (cljs.reader/parse-timestamp x))
-      (catch #?(:clj Exception :cljs :default) _
-        x))
-    x))
+         :cljs (cljs.reader/parse-timestamp x)))
+    :else :exoscale.coax/invalid))
 
 (defn to-boolean
   [x _]
   (case x
-    "true" true
-    "false" false
-    x))
+    (true "true") true
+    (false "false") false
+    :exoscale.coax/invalid))
 
 (defn to-keyword
   [x _]
-  (cond (string? x)
-        (keyword (cond-> x
-                   (str/starts-with? x ":")
-                   (subs 1)))
-        (symbol? x) (keyword x)
-        :else x))
+  (cond
+    (keyword? x)
+    x
+
+    (string? x)
+    (keyword (cond-> x
+               (str/starts-with? x ":")
+               (subs 1)))
+
+    (symbol? x)
+    (keyword x)
+
+    :else :exoscale.coax/invalid))
 
 (defn to-symbol
   [x _]
-  (cond-> x
+  (cond
+    (symbol? x)
+    x
     (string? x)
-    symbol))
+    (symbol x)
+    :else :exoscale.coax/invalid))
 
 (defn to-ident
   [x opts]
-  (if (string? x)
+  (cond
+    (string? x)
     (if (str/starts-with? x ":")
       (to-keyword x opts)
       (symbol x))
-    x))
+    (ident? x)
+    x
+    :else :exoscale.coax/invalid))
 
 #?(:clj
    (defn to-decimal
      [x _]
-     (try
-       (if (and (string? x) (str/ends-with? x "M"))
-         (bigdec (subs x 0 (dec (count x))))
-         (bigdec x))
-       (catch Exception _ x))))
+     (invalid-on-throw!
+      (if (and (string? x)
+               (str/ends-with? x "M"))
+        (bigdec (subs x 0 (dec (count x))))
+        (bigdec x)))))
+
+(to-decimal "42.42" nil)
 
 #?(:clj
    (defn to-uri
      [x _]
-     (cond-> x
+     (cond
+       (uri? x) x
        (string? x)
-       (URI.))))
+       (URI. x)
+       :else :exoscale.coax/invalid)))
 
 (defn identity
   [x _]

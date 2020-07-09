@@ -17,6 +17,14 @@
 
 #?(:clj (st/instrument))
 
+(defn safe-coerce
+  [coercer]
+  (fn [x opts]
+    (let [x' (coercer x opts)]
+      (if (= :exoscale.coax/invalid x')
+        x
+        x'))))
+
 (s/def ::infer-int int?)
 (s/def ::infer-and-spec (s/and int? #(> % 10)))
 (s/def ::infer-and-spec-indirect (s/and ::infer-int #(> % 10)))
@@ -125,7 +133,7 @@
 
 (deftest test-coerce-from-predicates
   (are [predicate input output] (= (sc/coerce predicate input) output)
-    `number? "42" 42.0
+    `number? "42" 42
     `number? "foo" "foo"
     `integer? "42" 42
     `int? "42" 42
@@ -141,6 +149,11 @@
     `double? "42.42" 42.42
     `double? 42.42 42.42
     `double? 42 42.0
+
+    `number? "42.42" 42.42
+    `number? 42.42 42.42
+    `number? 42 42
+
     `(s/double-in 0 100) "42.42" 42.42
     `string? 42 "42"
     `string? :a ":a"
@@ -180,8 +193,17 @@
     `(s/or :double double? :bool boolean?) "42.3" 42.3
     `(s/or :int int? :double double? :bool boolean?) "true" true
 
-    `(s/or :b keyword? :a string?) "abc" :abc
+    `(s/or :b keyword? :a string?) "abc" "abc"
     `(s/or :a string? :b keyword?) "abc" "abc"
+    `(s/or :b keyword? :a string?) :abc :abc
+
+    `(s/or :str string? :kw keyword? :number? number?) :asdf :asdf
+    `(s/or :str string? :kw keyword? :number? number?) "asdf" "asdf"
+    `(s/or :kw keyword? :str string? :number? number?) "asdf" "asdf"
+    `(s/or :number? number? :kw keyword? ) "1" 1
+    `(s/or :number? number?) "1" 1
+    `(s/or :number? number? :kw keyword? :str string?) "1" "1"
+    `(s/or :number? number? :kw keyword? :str string?) 1 1
 
     #?@(:clj [`uri? "http://site.com" (URI. "http://site.com")])
     #?@(:clj [`decimal? "42.42" 42.42M
@@ -223,6 +245,7 @@
          (if-not (= true (:result res))
            (throw (ex-info (str "Error coercing " s)
                            {:symbol s
+                            :spec sp
                             :result res})))))))
 
 #?(:clj (deftest test-coerce-inst
