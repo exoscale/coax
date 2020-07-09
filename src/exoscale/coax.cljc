@@ -11,31 +11,6 @@
               (java.net URI))))
 
 (declare coerce coerce*)
-;; (coerce `(s/or :str string? :kw keyword? :number? number?)
-;;         :asdf
-;;         {:exoscale.coax/forms {`s/or #'gen-coerce-or}})
-
-;; (coerce `(s/or :str string? :kw keyword? :number? number?)
-;;         "asdf"
-;;         {:exoscale.coax/forms {`s/or #'gen-coerce-or}})
-
-;; (coerce `(s/or :kw keyword? :str string? :number? number?)
-;;         "asdf"
-;;         {:exoscale.coax/forms {`s/or #'gen-coerce-or}})
-
-;; (coerce `(s/or :number? number? :kw keyword?)
-;;         "1"
-;;         {:exoscale.coax/forms {`s/or #'gen-coerce-or}})
-
-;; (coerce `(s/or :number? number? :kw keyword? :str string?)
-;;         1
-;;         {:exoscale.coax/forms {`s/or #'gen-coerce-or}})
-
-;; (coerce `(s/or :number? number? :kw keyword? :str string?)
-;;         "1"
-;;         {:exoscale.coax/forms {`s/or #'gen-coerce-or}})
-
-
 
 (defn gen-coerce-or [[_ & pairs]]
   (fn [x opts]
@@ -367,5 +342,3 @@
                                     [k (op (get idents k k) v opts)]
                                     [k v]))))))
                  x)))
-
-;(coerce `keyword? 1)
