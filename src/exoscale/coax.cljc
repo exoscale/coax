@@ -10,17 +10,22 @@
               (java.time Instant)
               (java.net URI))))
 
-(declare coerce)
+(declare coerce coerce*)
 
 (defn gen-coerce-or [[_ & pairs]]
   (fn [x opts]
-    (reduce (fn [x [_ spec]]
-              (let [coerced (coerce spec x opts)]
-                (if (= x coerced)
-                  x
-                  (reduced coerced))))
-            x
-            (partition 2 pairs))))
+    (let [xs (into []
+                   (comp (partition-all 2)
+                            (map #(coerce* (second %) x opts))
+                            (remove #{:exoscale.coax/invalid}))
+                       pairs)]
+      ;; return first val that's either matching input or not invalid
+      (or (reduce (fn [_ x']
+                    (when (= x x')
+                      (reduced x)))
+                  nil
+                  xs)
+          (first xs)))))
 
 (defn gen-coerce-and [[_ & [spec]]]
   (fn [x opts]
@@ -126,7 +131,7 @@
     coercer from registry"))
 
 (defonce ^:private registry-ref
-  (atom {::forms
+  (atom {:exoscale.coax/forms
          {`s/or gen-coerce-or
           `s/and gen-coerce-and
           `s/nilable gen-coerce-nilable
@@ -141,9 +146,9 @@
           `s/inst-in (constantly c/to-inst)
           `s/int-in (constantly c/to-long)
           `s/double-in (constantly c/to-double)}
-         ::idents
+         :exoscale.coax/idents
          {`string? c/to-string
-          `number? c/to-double
+          `number? c/to-number
           `integer? c/to-long
           `int? c/to-long
           `pos-int? c/to-long
@@ -168,7 +173,7 @@
           `false? c/to-boolean
           `true? c/to-boolean
           `zero? c/to-long}
-         ::enums #'enum-key}))
+         :exoscale.coax/enums #'enum-key}))
 
 (defn registry
   "returns the registry map, prefer 'get-spec' to lookup a spec by name"
@@ -176,7 +181,7 @@
   @registry-ref)
 
 #?(:clj (swap! registry-ref
-               update ::idents
+               update :exoscale.coax/idents
                assoc
                `uri? c/to-uri
                `decimal? c/to-decimal))
@@ -236,24 +241,24 @@
 
 (defn find-coercer
   "Tries to find coercer by looking into registry.
-  First looking at ::idents if value is a qualified-keyword or
+  First looking at :exoscale.coax/idents if value is a qualified-keyword or
   qualified symbol, or checking if the value is an enum
   value (homogeneous set) and lastly if it's a s-exp form that
   indicates a spec form likely it will return it's generated coercer
-  from registry ::form , otherwise the it returns the identity coercer"
-  [spec-exp {:as opts ::keys [enums]}]
-  (let [{:as reg ::keys [idents]} (-> @registry-ref
-                                      (update ::idents merge (::idents opts))
-                                      (update ::forms merge (::forms opts))
-                                      (cond-> enums (assoc ::enums enums)))]
+  from registry :exoscale.coax/form , otherwise the it returns the identity coercer"
+  [spec-exp {:as opts :exoscale.coax/keys [enums]}]
+  (let [{:as reg :exoscale.coax/keys [idents]} (-> @registry-ref
+                                      (update :exoscale.coax/idents merge (:exoscale.coax/idents opts))
+                                      (update :exoscale.coax/forms merge (:exoscale.coax/forms opts))
+                                      (cond-> enums (assoc :exoscale.coax/enums enums)))]
     (or (cond (qualified-ident? spec-exp)
               (get idents spec-exp)
 
               (enum? spec-exp)
-              (get idents ((::enums reg) (first spec-exp)))
+              (get idents ((:exoscale.coax/enums reg) (first spec-exp)))
 
               (sequential? spec-exp)
-              ((get-in reg [::forms (first spec-exp)]) spec-exp))
+              ((get-in reg [:exoscale.coax/forms (first spec-exp)]) spec-exp))
         c/identity)))
 
 (defn coerce-fn
@@ -261,13 +266,22 @@
   the coercion on the registry, otherwise try to infer from the
   specs. In case nothing is found, identity function is returned."
   ([spec] (coerce-fn spec {}))
-  ([spec {::keys [idents] :as opts}]
+  ([spec {:exoscale.coax/keys [idents] :as opts}]
    (or (when (qualified-keyword? spec)
-         (si/registry-lookup (merge (::idents @registry-ref)
+         (si/registry-lookup (merge (:exoscale.coax/idents @registry-ref)
                                     idents)
                              spec))
        (find-coercer (si/spec->root-sym spec)
                      opts))))
+
+(defn coerce*
+  "Like coerce, but if it can't find a way to coerce the original value
+  will return `:exoscale.coax/invalid`. Mostly useful for
+  implementation of special forms like s/or."
+  [spec x opts]
+  (if-let [coerce-fn (coerce-fn spec opts)]
+    (coerce-fn x opts)
+    x))
 
 (defn coerce
   "Coerce a value `x` using coercer `k`. This function will first try to
@@ -276,9 +290,10 @@
   case a coercer can't be found."
   ([spec x] (coerce spec x {}))
   ([spec x opts]
-   (if-let [coerce-fn (coerce-fn spec opts)]
-     (coerce-fn x opts)
-     x)))
+   (let [x' (coerce* spec x opts)]
+     (if (= :exoscale.coax/invalid x')
+       x
+       x'))))
 
 (defn coerce!
   "Like coerce, but will call s/assert on the result, making it throw an
@@ -289,7 +304,7 @@
      (if (s/valid? spec coerced)
        coerced
        (throw (ex-info "Invalid coerced value"
-                       {:type ::invalid-coerced-value
+                       {:type :exoscale.coax/invalid-coerced-value
                         :explain-data (s/explain-data spec x)}))))))
 
 (defn conform
@@ -299,7 +314,7 @@
    (s/conform spec (coerce spec x opts))))
 
 (defn ^:no-doc def-impl [k coerce-fn]
-  (swap! registry-ref assoc-in [::idents k] coerce-fn)
+  (swap! registry-ref assoc-in [:exoscale.coax/idents k] coerce-fn)
   k)
 
 (s/fdef def
@@ -315,7 +330,7 @@
 (defn coerce-structure
   "Recursively coerce map values on a structure."
   ([x] (coerce-structure x {}))
-  ([x {::keys [idents op]
+  ([x {:exoscale.coax/keys [idents op]
        :or {op coerce}
        :as opts}]
    (walk/prewalk (fn [x]
