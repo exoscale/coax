@@ -255,10 +255,12 @@
               (get idents spec-exp)
 
               (enum? spec-exp)
-              (get idents ((:exoscale.coax/enums reg) (first spec-exp)))
+              (when-let [f (:exoscale.coax/enums reg)]
+                (get idents (f (first spec-exp))))
 
               (sequential? spec-exp)
-              ((get-in reg [:exoscale.coax/forms (first spec-exp)]) spec-exp))
+              (when-let [f (get-in reg [:exoscale.coax/forms (first spec-exp)])]
+                (f spec-exp)))
         c/identity)))
 
 (defn coerce-fn
