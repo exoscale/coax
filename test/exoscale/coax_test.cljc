@@ -392,3 +392,7 @@
   (is (= {:foo 1} (sc/coerce ::multi {:foo "1"})))
   (is (= {:foo 1 :d :kw} (sc/coerce ::multi {:d :kw :foo "1"})))
   (is (= "garbage" (sc/coerce ::multi "garbage"))))
+
+(deftest test-gigo
+  (is (= (sc/coerce `(some-unknown-form string?) 1) 1))
+  (is (= (sc/coerce `(some-unknown-form) 1) 1)))
