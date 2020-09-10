@@ -16,9 +16,9 @@
   (fn [x opts]
     (let [xs (into []
                    (comp (partition-all 2)
-                            (map #(coerce* (second %) x opts))
-                            (remove #{:exoscale.coax/invalid}))
-                       pairs)]
+                         (map #(coerce* (second %) x opts))
+                         (remove #{:exoscale.coax/invalid}))
+                   pairs)]
       ;; return first val that's either matching input or not invalid
       (or (reduce (fn [_ x']
                     (when (= x x')
@@ -38,15 +38,16 @@
                                  (map #(vector (keyword (name %)) %)))
                            (flatten (concat req-un opt-un)))]
     (fn [x opts]
-      (cond->> x
-        (associative? x)
+      (if (associative? x)
         (reduce-kv (fn [m k v]
                      (assoc m
                             k
                             (coerce (or (keys-mapping k) k)
                                     v
                                     opts)))
-                   (empty x))))))
+                   (empty x)
+                   x)
+        :exoscale.coax/invalid))))
 
 (defn gen-coerce-coll-of [[_ spec & {:as _opts :keys [kind]}]]
   (fn [x opts]
@@ -64,23 +65,25 @@
                      x)]
         (cond-> xs (list? xs)
                 reverse))
-      x)))
+      :exoscale.coax/invalid)))
 
 (defn gen-coerce-map-of [[_ kspec vspec & _]]
   (fn [x opts]
-    (cond->> x
-      (associative? x)
+    (if (associative? x)
       (into (empty x) ;; ensure we copy meta
             (map (fn [[k v]]
                    [(coerce kspec k opts)
-                    (coerce vspec v opts)]))))))
+                    (coerce vspec v opts)]))
+            x)
+      :exoscale.coax/invalid)))
 
 (defn gen-coerce-tuple [[_ & specs]]
   (fn [x opts]
-    (cond->> x
-      (sequential? x)
+    (if (sequential? x)
       (mapv #(coerce %1 %2 opts)
-            specs))))
+            specs
+            x)
+      :exoscale.coax/invalid)))
 
 (defn gen-coerce-multi-spec
   [[_ f retag & _ :as spec-expr]]
@@ -88,16 +91,16 @@
              ;; wall-hack, inspired by spec-tools internals until we
              ;; get a better way to do it
              :cljs (->> (s/registry)
-                       vals
-                       (filter #(= spec-expr (s/form %)))
-                       first
-                       .-mmvar))]
+                        vals
+                        (filter #(= spec-expr (s/form %)))
+                        first
+                        .-mmvar))]
     (fn [x opts]
       (if (associative? x)
         (coerce (s/form (f (retag x)))
                 x
                 opts)
-        x))))
+        :exoscale.coax/invalid))))
 
 (defn gen-coerce-merge
   [[_ & spec-forms]]
@@ -116,8 +119,7 @@
                       (coerce spec-form x opts)))
               x
               spec-forms)
-      x)))
-
+      :exoscale.coax/invalid)))
 
 (defn gen-coerce-nilable
   [[_ spec]]
@@ -248,9 +250,9 @@
   from registry :exoscale.coax/form , otherwise the it returns the identity coercer"
   [spec-exp {:as opts :exoscale.coax/keys [enums]}]
   (let [{:as reg :exoscale.coax/keys [idents]} (-> @registry-ref
-                                      (update :exoscale.coax/idents merge (:exoscale.coax/idents opts))
-                                      (update :exoscale.coax/forms merge (:exoscale.coax/forms opts))
-                                      (cond-> enums (assoc :exoscale.coax/enums enums)))]
+                                                   (update :exoscale.coax/idents merge (:exoscale.coax/idents opts))
+                                                   (update :exoscale.coax/forms merge (:exoscale.coax/forms opts))
+                                                   (cond-> enums (assoc :exoscale.coax/enums enums)))]
     (or (cond (qualified-ident? spec-exp)
               (get idents spec-exp)
 
@@ -302,12 +304,15 @@
   error if value doesn't comply after coercion."
   ([spec x] (coerce! spec x {}))
   ([spec x opts]
-   (let [coerced (coerce spec x opts)]
-     (if (s/valid? spec coerced)
-       coerced
+   (let [coerced (coerce* spec x opts)]
+     (if (or (= :exoscale.coax/invalid coerced)
+             (and (qualified-keyword? spec)
+                  (not (s/valid? spec coerced))))
        (throw (ex-info "Invalid coerced value"
                        {:type :exoscale.coax/invalid-coerced-value
-                        :explain-data (s/explain-data spec x)}))))))
+                        :value x
+                        :spec spec}))
+       coerced))))
 
 (defn conform
   "Like coerce, and will call s/conform on the result."

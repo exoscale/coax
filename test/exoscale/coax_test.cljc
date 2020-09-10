@@ -2,17 +2,17 @@
   #?(:cljs (:require-macros [cljs.test :refer [deftest testing is are run-tests]]
                             [exoscale.coax :as sc]))
   (:require
-    #?(:clj [clojure.test :refer [deftest testing is are]])
-    [clojure.spec.alpha :as s]
-    [clojure.string :as str]
-    [clojure.test.check :as tc]
-    [clojure.test.check.generators]
-    [clojure.test.check.properties :as prop]
-    [clojure.spec.test.alpha :as st]
-    #?(:clj [clojure.test.check.clojure-test :refer [defspec]])
-    #?(:cljs [clojure.test.check.clojure-test :refer-macros [defspec]])
-    [exoscale.coax :as sc]
-    [exoscale.coax.coercer :as c])
+   #?(:clj [clojure.test :refer [deftest testing is are]])
+   [clojure.spec.alpha :as s]
+   [clojure.string :as str]
+   [clojure.test.check :as tc]
+   [clojure.test.check.generators]
+   [clojure.test.check.properties :as prop]
+   [clojure.spec.test.alpha :as st]
+   #?(:clj [clojure.test.check.clojure-test :refer [defspec]])
+   #?(:cljs [clojure.test.check.clojure-test :refer-macros [defspec]])
+   [exoscale.coax :as sc]
+   [exoscale.coax.coercer :as c])
   #?(:clj (:import (java.net URI))))
 
 #?(:clj (st/instrument))
@@ -118,7 +118,13 @@
 (deftest test-coerce!
   (is (= (sc/coerce! ::infer-int "123") 123))
   (is (thrown-with-msg? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
-                        #"Invalid coerced value" (sc/coerce! ::infer-int "abc"))))
+                        #"Invalid coerced value" (sc/coerce! ::infer-int "abc")))
+
+  (is (= (sc/coerce! `int? "123") 123))
+  (is (thrown-with-msg? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+                        #"Invalid coerced value" (sc/coerce! `(s/coll-of string?) 1)))
+  (is (thrown-with-msg? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+                        #"Invalid coerced value" (sc/coerce! `(s/coll-of ::int-set) ""))))
 
 (deftest test-conform
   (is (= (sc/conform ::or-example "true") [:bool true])))
@@ -192,7 +198,7 @@
     `(s/or :str string? :kw keyword? :number? number?) :asdf :asdf
     `(s/or :str string? :kw keyword? :number? number?) "asdf" "asdf"
     `(s/or :kw keyword? :str string? :number? number?) "asdf" "asdf"
-    `(s/or :number? number? :kw keyword? ) "1" 1
+    `(s/or :number? number? :kw keyword?) "1" 1
     `(s/or :number? number?) "1" 1
     `(s/or :number? number? :kw keyword? :str string?) "1" "1"
     `(s/or :number? number? :kw keyword? :str string?) 1 1
@@ -203,7 +209,6 @@
 
 (def test-gens
   {`inst? (s/gen (s/inst-in #inst "1980" #inst "9999"))})
-
 
 #?(:cljs
    (defn ->js [var-name]
@@ -265,51 +270,51 @@
 
 (deftest test-coerce-structure
   (is (= (sc/coerce-structure {::some-coercion "321"
-                               ::not-defined   "bla"
-                               :sub            {::infer-int "42"}})
+                               ::not-defined "bla"
+                               :sub {::infer-int "42"}})
          {::some-coercion 321
-          ::not-defined   "bla"
-          :sub            {::infer-int 42}}))
+          ::not-defined "bla"
+          :sub {::infer-int 42}}))
   (is (= (sc/coerce-structure {::some-coercion "321"
-                               ::not-defined   "bla"
-                               :unqualified    12
-                               :sub            {::infer-int "42"}}
-           {::sc/idents {::not-defined `keyword?}})
+                               ::not-defined "bla"
+                               :unqualified 12
+                               :sub {::infer-int "42"}}
+                              {::sc/idents {::not-defined `keyword?}})
          {::some-coercion 321
-          ::not-defined   :bla
-          :unqualified    12
-          :sub            {::infer-int 42}}))
+          ::not-defined :bla
+          :unqualified 12
+          :sub {::infer-int 42}}))
   (is (= (sc/coerce-structure {::or-example "321"}
-           {::sc/op sc/conform})
+                              {::sc/op sc/conform})
          {::or-example [:int 321]})))
 
 (s/def ::bool boolean?)
 (s/def ::simple-keys (s/keys :req [::infer-int]
-                       :opt [::bool]))
+                             :opt [::bool]))
 (s/def ::nested-keys (s/keys :req [::infer-form ::simple-keys]
-                       :req-un [::bool]))
+                             :req-un [::bool]))
 
 (deftest test-coerce-keys
   (is (= {::infer-int 123}
          (sc/coerce ::simple-keys {::infer-int "123"})))
-  (is (= {::infer-form  [1 2 3]
+  (is (= {::infer-form [1 2 3]
           ::simple-keys {::infer-int 456
-                         ::bool      true}
-          :bool         true}
-         (sc/coerce ::nested-keys {::infer-form  ["1" "2" "3"]
+                         ::bool true}
+          :bool true}
+         (sc/coerce ::nested-keys {::infer-form ["1" "2" "3"]
                                    ::simple-keys {::infer-int "456"
-                                                  ::bool      "true"}
-                                   :bool         "true"})))
+                                                  ::bool "true"}
+                                   :bool "true"})))
   (is (= "garbage" (sc/coerce ::simple-keys "garbage"))))
 
 (s/def ::head double?)
 (s/def ::body int?)
-(s/def ::arm  int?)
-(s/def ::leg  double?)
+(s/def ::arm int?)
+(s/def ::leg double?)
 (s/def ::arms (s/coll-of ::arm))
 (s/def ::legs (s/coll-of ::leg))
 (s/def ::name string?)
-(s/def ::animal (s/keys :req    [::head ::body ::arms ::legs]
+(s/def ::animal (s/keys :req [::head ::body ::arms ::legs]
                         :opt-un [::name ::id]))
 
 (deftest test-coerce-with-registry-overrides
@@ -396,3 +401,8 @@
 (deftest test-gigo
   (is (= (sc/coerce `(some-unknown-form string?) 1) 1))
   (is (= (sc/coerce `(some-unknown-form) 1) 1)))
+
+(deftest invalidity-test
+  (is (= :exoscale.coax/invalid (sc/coerce* `int? [] {})))
+  (is (= :exoscale.coax/invalid (sc/coerce* `(s/coll-of int?) 1 {})))
+  (is (= :exoscale.coax/invalid (sc/coerce* ::int-set "" {}))))

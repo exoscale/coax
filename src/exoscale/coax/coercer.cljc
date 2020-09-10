@@ -35,11 +35,11 @@
   (invalid-on-throw!
    (cond (string? x)
          #?(:clj  (case x
-                    "##-Inf"    ##-Inf
-                    "##Inf"     ##Inf
-                    "##NaN"     ##NaN
-                    "NaN"       ##NaN
-                    "Infinity"  ##Inf
+                    "##-Inf" ##-Inf
+                    "##Inf" ##Inf
+                    "##NaN" ##NaN
+                    "NaN" ##NaN
+                    "Infinity" ##Inf
                     "-Infinity" ##-Inf
                     (Double/parseDouble x))
             :cljs (if (= "NaN" x)
@@ -67,8 +67,8 @@
     x
     (string? x)
     (invalid-on-throw!
-      #?(:clj  (UUID/fromString x)
-         :cljs (uuid x)))
+     #?(:clj (UUID/fromString x)
+        :cljs (uuid x)))
     :else :exoscale.coax/invalid))
 
 (defn to-inst
@@ -78,8 +78,8 @@
     x
     (string? x)
     (invalid-on-throw!
-      #?(:clj (clojure.instant/read-instant-date x)
-         :cljs (cljs.reader/parse-timestamp x)))
+     #?(:clj (clojure.instant/read-instant-date x)
+        :cljs (cljs.reader/parse-timestamp x)))
     :else :exoscale.coax/invalid))
 
 (defn to-boolean
@@ -133,8 +133,6 @@
                (str/ends-with? x "M"))
         (bigdec (subs x 0 (dec (count x))))
         (bigdec x)))))
-
-(to-decimal "42.42" nil)
 
 #?(:clj
    (defn to-uri
