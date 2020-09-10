@@ -118,13 +118,7 @@
 (deftest test-coerce!
   (is (= (sc/coerce! ::infer-int "123") 123))
   (is (thrown-with-msg? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
-                        #"Invalid coerced value" (sc/coerce! ::infer-int "abc")))
-
-  (is (= (sc/coerce! `int? "123") 123))
-  (is (thrown-with-msg? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
-                        #"Invalid coerced value" (sc/coerce! `(s/coll-of string?) 1)))
-  (is (thrown-with-msg? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
-                        #"Invalid coerced value" (sc/coerce! `(s/coll-of ::int-set) ""))))
+                        #"Invalid coerced value" (sc/coerce! ::infer-int "abc"))))
 
 (deftest test-conform
   (is (= (sc/conform ::or-example "true") [:bool true])))
@@ -379,6 +373,14 @@
       "Coerce new vals appropriately")
   (is (= {:foo 1 :bar "1" :c {:a 2}}
          (sc/coerce ::merge {:foo 1 :bar "1" :c {:a 2}}))
+      "Leave out ok vals")
+
+  (s/def ::merge2 (s/merge (s/keys :req [::foo])
+                           ::unqualified))
+
+  (is (= {::foo 1 :bar "1" :c {:a 2}
+          :foo 1}
+         (sc/coerce ::merge2 {::foo "1" :foo "1" :bar "1" :c {:a 2}}))
       "Leave out ok vals")
 
   (is (= "garbage" (sc/coerce ::merge "garbage"))
