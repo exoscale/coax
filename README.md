@@ -228,11 +228,11 @@ Examples from predicate to coerced value:
 (c/coerce `decimal? "42.42M") ; => 42.42M
 
 ;; Throw exception when coercipon fails
-(c/coerce! `int? "abc") ; => throws (ex-info "Failed to coerce value" {:spec `int? :value "abc"})
+(c/coerce! ::number "abc") ; => throws (ex-info "Failed to coerce value" {:spec ::number :val "abc" ...})
 (c/coerce! :simple-keyword "abc") ; => "abc", coerce! doesn't do anything on simple keywords
 
 ;; Conform the result after coerce
-(c/conform `(s/or :int int? :bool boolean?) "40")          ; [:int 40]
+(c/conform ::number "40")          ; 40
 
 ;; Throw on coerce structure
 (c/coerce-structure {::number "42"} {::c/op c/coerce!})
