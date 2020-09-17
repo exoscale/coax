@@ -196,6 +196,8 @@
     `(s/or :number? number?) "1" 1
     `(s/or :number? number? :kw keyword? :str string?) "1" "1"
     `(s/or :number? number? :kw keyword? :str string?) 1 1
+    #{:a :b} "a" :a
+    #{1 2} "1" 1
 
     #?@(:clj [`uri? "http://site.com" (URI. "http://site.com")])
     #?@(:clj [`decimal? "42.42" 42.42M
