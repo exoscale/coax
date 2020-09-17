@@ -250,16 +250,22 @@
 
 (defn find-coercer
   "Tries to find coercer by looking into registry.
-  First looking at :exoscale.coax/idents if value is a qualified-keyword or
-  qualified symbol, or checking if the value is an enum
-  value (homogeneous set) and lastly if it's a s-exp form that
+  First looking at :exoscale.coax/idents if value is a
+  qualified-keyword or qualified symbol, or checking if the value is
+  an enum value (homogeneous set) and lastly if it's a s-exp form that
   indicates a spec form likely it will return it's generated coercer
-  from registry :exoscale.coax/form , otherwise the it returns the identity coercer"
+  from registry :exoscale.coax/form , otherwise the it returns the
+  identity coercer"
   [spec-exp {:as opts :exoscale.coax/keys [enums]}]
   (let [{:as reg :exoscale.coax/keys [idents]} (-> @registry-ref
-                                                   (update :exoscale.coax/idents merge (:exoscale.coax/idents opts))
-                                                   (update :exoscale.coax/forms merge (:exoscale.coax/forms opts))
-                                                   (cond-> enums (assoc :exoscale.coax/enums enums)))]
+                                                   (update :exoscale.coax/idents
+                                                           merge
+                                                           (:exoscale.coax/idents opts))
+                                                   (update :exoscale.coax/forms
+                                                           merge
+                                                           (:exoscale.coax/forms opts))
+                                                   (cond-> enums
+                                                     (assoc :exoscale.coax/enums enums)))]
     (or (cond (qualified-ident? spec-exp)
               (get idents spec-exp)
 
@@ -282,7 +288,7 @@
          (si/registry-lookup (merge (:exoscale.coax/idents @registry-ref)
                                     idents)
                              spec))
-       (find-coercer (si/spec->root-sym spec)
+       (find-coercer (si/spec-root spec)
                      opts))))
 
 (defn coerce*
@@ -300,7 +306,8 @@
                                                    :more (s/* any?))))
 (s/def ::reg-spec qualified-keyword?)
 (s/def ::spec (s/or :reg-spec ::reg-spec
-                    :symbolic-spec ::symbolic-spec))
+                    :symbolic-spec ::symbolic-spec
+                    :set-spec set?))
 
 (s/fdef coerce
   :args (s/cat :spec ::spec

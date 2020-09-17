@@ -9,6 +9,10 @@
   (when (qualified-symbol? x)
     x))
 
+(defn- accept-set [x]
+  (when (set? x)
+    x))
+
 (defn- accept-symbol-call [spec]
   (when (and (seq? spec)
              (symbol? (first spec)))
@@ -19,12 +23,13 @@
   [spec]
   (some-> spec s/get-spec s/form))
 
-(defn spec->root-sym
-  "Determine the main spec symbol from a spec form."
+(defn spec-root
+  "Determine the main spec root from a spec form."
   [spec]
   (let [spec-def (or (spec-form spec)
                      (accept-symbol spec)
-                     (accept-symbol-call spec))]
+                     (accept-symbol-call spec)
+                     (accept-set spec))]
     (cond-> spec-def
       (qualified-keyword? spec-def)
       recur)))
