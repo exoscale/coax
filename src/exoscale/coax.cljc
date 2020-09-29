@@ -102,7 +102,7 @@
                         .-mmvar))]
     (fn [x opts]
       (if (associative? x)
-        (coerce (s/form (f (retag x)))
+        (coerce (s/form (f x))
                 x
                 opts)
         :exoscale.coax/invalid))))
