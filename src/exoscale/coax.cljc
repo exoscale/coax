@@ -314,10 +314,10 @@
                :x any?
                :opts (s/? (s/nilable ::opts))))
 (defn coerce
-  "Coerce a value `x` using coercer `k`. This function will first try to
-  use a coercer from the registry, otherwise it will try to infer a
-  coercer from the spec with the same name. Returns original value in
-  case a coercer can't be found."
+  "Coerce a value `x` using spec/coercer `spec`. This function will
+  first try to use a coercer from the registry, otherwise it will try
+  to infer a coercer from the spec with the same name. Returns
+  original value in case a coercer can't be found."
   ([spec x] (coerce spec x {}))
   ([spec x opts]
    (let [x' (coerce* spec x opts)]
