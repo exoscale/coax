@@ -256,8 +256,9 @@
   indicates a spec form likely it will return it's generated coercer
   from registry :exoscale.coax/form , otherwise the it returns the
   identity coercer"
-  [spec-exp {:as opts :exoscale.coax/keys [enums]}]
-  (let [{:as reg :exoscale.coax/keys [idents]} (-> @registry-ref
+  [spec {:as opts :exoscale.coax/keys [enums]}]
+  (let [spec-exp (si/spec-root spec)
+        {:as reg :exoscale.coax/keys [idents]} (-> @registry-ref
                                                    (update :exoscale.coax/idents
                                                            merge
                                                            (:exoscale.coax/idents opts))
@@ -278,18 +279,33 @@
                 (f spec-exp)))
         c/identity)))
 
-(defn coerce-fn
+(defn coerce-fn*
   "Get the coercing function from a given key. First it tries to lookup
   the coercion on the registry, otherwise try to infer from the
   specs. In case nothing is found, identity function is returned."
-  ([spec] (coerce-fn spec {}))
-  ([spec {:exoscale.coax/keys [idents] :as opts}]
-   (or (when (qualified-keyword? spec)
-         (si/registry-lookup (merge (:exoscale.coax/idents @registry-ref)
-                                    idents)
-                             spec))
-       (find-coercer (si/spec-root spec)
-                     opts))))
+  [spec {:exoscale.coax/keys [idents] :as opts}]
+  (or (when (qualified-keyword? spec)
+        (si/registry-lookup (merge (:exoscale.coax/idents @registry-ref)
+                                   idents)
+                            spec))
+      (find-coercer spec opts)))
+
+(def coercer-cache (atom {}))
+
+(defn cached-coerce-fn
+  [spec opts]
+  (let [k [spec opts]]
+    (if-let [e (find @coercer-cache [spec opts])]
+      (val e)
+      (let [ret (coerce-fn* spec opts)]
+        (swap! coercer-cache assoc k ret)
+        ret))))
+
+(defn coerce-fn
+  [spec opts]
+  (if (:exoscale.coax/cache? opts true)
+    (cached-coerce-fn spec opts)
+    (coerce-fn* spec opts)))
 
 (defn coerce*
   "Like coerce, but if it can't find a way to coerce the original value
