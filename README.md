@@ -248,11 +248,11 @@ specs and generating coercers per call, it makes the coercion process
 orders of magnitude faster once cache (depends on what the coercion
 does of course). It is `on` by default. The cache is under
 `exoscale.coax/coercer-cache`, it's just an atom holding a map of
-`[spec, options] -> coercer`. In most case you should have to care
+`[spec, options] -> coercer`. In most case you shouldn't have to care
 about this, for instance when you define static coercers via
-`coax/def` we'll make sure the cache is updated accordingly, but
+`coax/def` we'll make sure the cache is updated accordingly. But
 during development you might need to be aware of the existence of that
-cache (ex if you defined a bugged coercer, or while doing repl dev).
+cache (ex if you defined a bugged coercer, or while doing REPL dev).
 
 In any case you can turn off the cache by passing
 `:exoscale.coax/cache? false` to the options of
