@@ -256,8 +256,9 @@
   indicates a spec form likely it will return it's generated coercer
   from registry :exoscale.coax/form , otherwise the it returns the
   identity coercer"
-  [spec-exp {:as opts :exoscale.coax/keys [enums]}]
-  (let [{:as reg :exoscale.coax/keys [idents]} (-> @registry-ref
+  [spec {:as opts :exoscale.coax/keys [enums]}]
+  (let [spec-exp (si/spec-root spec)
+        {:as reg :exoscale.coax/keys [idents]} (-> @registry-ref
                                                    (update :exoscale.coax/idents
                                                            merge
                                                            (:exoscale.coax/idents opts))
@@ -278,18 +279,36 @@
                 (f spec-exp)))
         c/identity)))
 
-(defn coerce-fn
+(defn coerce-fn*
   "Get the coercing function from a given key. First it tries to lookup
   the coercion on the registry, otherwise try to infer from the
   specs. In case nothing is found, identity function is returned."
-  ([spec] (coerce-fn spec {}))
-  ([spec {:exoscale.coax/keys [idents] :as opts}]
-   (or (when (qualified-keyword? spec)
-         (si/registry-lookup (merge (:exoscale.coax/idents @registry-ref)
-                                    idents)
-                             spec))
-       (find-coercer (si/spec-root spec)
-                     opts))))
+  [spec {:exoscale.coax/keys [idents] :as opts}]
+  (or (when (qualified-keyword? spec)
+        (si/registry-lookup (merge (:exoscale.coax/idents @registry-ref)
+                                   idents)
+                            spec))
+      (find-coercer spec opts)))
+
+(def coercer-cache (atom {}))
+
+(defn update-cache!
+  [cache k coercer]
+  (swap! cache assoc k coercer)
+  coercer)
+
+(defn cached-coerce-fn
+  [spec opts]
+  (let [k [spec opts]]
+    (if-let [e (find @coercer-cache k)]
+      (val e)
+      (update-cache! coercer-cache k (coerce-fn* spec opts)))))
+
+(defn coerce-fn
+  [spec opts]
+  (if (:exoscale.coax/cache? opts true)
+    (cached-coerce-fn spec opts)
+    (coerce-fn* spec opts)))
 
 (defn coerce*
   "Like coerce, but if it can't find a way to coerce the original value
@@ -358,6 +377,15 @@
 (defn ^:no-doc def-impl
   [k coerce-fn]
   (swap! registry-ref assoc-in [:exoscale.coax/idents k] coerce-fn)
+  ;; ensure all cache entries for that key are cleared
+  (swap! coercer-cache
+         (fn [cache]
+           (reduce-kv (fn [cache [spec _opts :as cache-key] coercer]
+                        (cond-> cache
+                          (not (= k spec))
+                          (assoc cache-key coercer)))
+                      {}
+                      cache)))
   k)
 
 (s/fdef def

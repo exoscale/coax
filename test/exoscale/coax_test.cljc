@@ -410,3 +410,15 @@
   (is (= :exoscale.coax/invalid (sc/coerce* `int? [] {})))
   (is (= :exoscale.coax/invalid (sc/coerce* `(s/coll-of int?) 1 {})))
   (is (= :exoscale.coax/invalid (sc/coerce* ::int-set "" {}))))
+
+
+(deftest test-caching
+  (s/def ::bs (s/keys :req [::bool]))
+  (is (= false (sc/coerce ::bool "false")))
+  (is (= false (::bool (sc/coerce ::bs {::bool "false"}))))
+  (is (= false (sc/coerce ::bool
+                          "false"
+                          {:exoscale.coax/cache? false})))
+  (is (= false (::bool (sc/coerce ::bs
+                                  {::bool "false"}
+                                  {:exoscale.coax/cache? false})))))
