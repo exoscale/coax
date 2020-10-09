@@ -300,11 +300,9 @@
 (defn cached-coerce-fn
   [spec opts]
   (let [k [spec opts]]
-    (if (:exoscale.coax/force-cache-update? opts)
-      (update-cache! coercer-cache k (coerce-fn* spec opts))
-      (if-let [e (find @coercer-cache k)]
-        (val e)
-        (update-cache! coercer-cache k (coerce-fn* spec opts))))))
+    (if-let [e (find @coercer-cache k)]
+      (val e)
+      (update-cache! coercer-cache k (coerce-fn* spec opts)))))
 
 (defn coerce-fn
   [spec opts]
