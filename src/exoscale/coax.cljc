@@ -292,14 +292,19 @@
 
 (def coercer-cache (atom {}))
 
+(defn update-cache!
+  [cache k coercer]
+  (swap! cache assoc k coercer)
+  coercer)
+
 (defn cached-coerce-fn
   [spec opts]
   (let [k [spec opts]]
-    (if-let [e (find @coercer-cache [spec opts])]
-      (val e)
-      (let [ret (coerce-fn* spec opts)]
-        (swap! coercer-cache assoc k ret)
-        ret))))
+    (if (:exoscale.coax/force-cache-update? opts)
+      (update-cache! coercer-cache k (coerce-fn* spec opts))
+      (if-let [e (find @coercer-cache k)]
+        (val e)
+        (update-cache! coercer-cache k (coerce-fn* spec opts))))))
 
 (defn coerce-fn
   [spec opts]
