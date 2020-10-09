@@ -379,6 +379,15 @@
 (defn ^:no-doc def-impl
   [k coerce-fn]
   (swap! registry-ref assoc-in [:exoscale.coax/idents k] coerce-fn)
+  ;; ensure all cache entries for that key are cleared
+  (swap! coercer-cache
+         (fn [cache]
+           (reduce-kv (fn [cache [spec _opts :as cache-key] coercer]
+                        (cond-> cache
+                          (not (= k spec))
+                          (assoc cache-key coercer)))
+                      {}
+                      cache)))
   k)
 
 (s/fdef def
