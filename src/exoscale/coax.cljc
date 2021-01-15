@@ -84,7 +84,7 @@
 
 (defn gen-coerce-tuple [[_ & specs]]
   (fn [x opts]
-    (if (coll? x)
+    (if (sequential? x)
       (mapv #(coerce %1 %2 opts)
             specs
             x)
