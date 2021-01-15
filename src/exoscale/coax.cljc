@@ -56,7 +56,7 @@
 
 (defn gen-coerce-coll-of [[_ spec & {:as _opts :keys [kind]}]]
   (fn [x opts]
-    (if (sequential? x)
+    (if (coll? x)
       ;; either we have a `:kind` and coerce to that, or we
       ;; just `empty` the original
       (let [xs (into (condp = kind
@@ -84,7 +84,7 @@
 
 (defn gen-coerce-tuple [[_ & specs]]
   (fn [x opts]
-    (if (sequential? x)
+    (if (coll? x)
       (mapv #(coerce %1 %2 opts)
             specs
             x)
