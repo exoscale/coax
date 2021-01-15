@@ -174,6 +174,7 @@
     `(s/coll-of int?) ["11" "foo" "42"] [11 "foo" 42]
     `(s/coll-of int? :kind list?) ["11" "foo" "42"] '(11 "foo" 42)
     `(s/coll-of int? :kind set?) ["11" "foo" "42"] #{11 "foo" 42}
+    `(s/coll-of int? :kind set?) #{"11" "foo" "42"} #{11 "foo" 42}
     `(s/coll-of int? :kind vector?) '("11" "foo" "42") [11 "foo" 42]
     `(s/every int?) ["11" "31" "42"] [11 31 42]
 
