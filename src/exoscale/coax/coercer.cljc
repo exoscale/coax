@@ -2,10 +2,8 @@
   (:refer-clojure :exclude [identity])
   (:require [clojure.string :as str]
             #?(:clj [clojure.instant]))
-  #?(:clj (:import (java.util Date TimeZone UUID)
-                   (java.net URI)
-                   (java.time LocalDate LocalDateTime ZoneId)
-                   (java.time.format DateTimeFormatter))))
+  #?(:clj (:import (java.util UUID)
+                   (java.net URI))))
 
 (defmacro invalid-on-throw!
   [& body]
