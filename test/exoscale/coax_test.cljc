@@ -387,7 +387,16 @@
       "Leave out ok vals")
 
   (is (= "garbage" (sc/coerce ::merge "garbage"))
-      "garbage is passthrough"))
+      "garbage is passthrough")
+
+  (s/def ::x qualified-keyword?)
+  (sc/def ::x (fn [x _] (keyword "y" x)))
+  (s/def ::m1 (s/keys :opt [::x]))
+  (s/def ::mm (s/merge ::m1 ::m1))
+  (is (= {::x :y/quux}
+         (sc/coerce ::mm
+                    {::x "quux"}
+                    {::sc/cache? false}))))
 
 (def d :kw)
 ;; no vars in cljs

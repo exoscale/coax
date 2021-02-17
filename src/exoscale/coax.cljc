@@ -117,12 +117,9 @@
                 ;; defaults do not overwrite coerced values
                 (into m
                       (keep (fn [[spec v]]
-                              (let [new-val (if (qualified-ident? spec)
-                                              (coerce spec v opts)
-                                              v)]
-                                ;; new-val doesn't match default, keep it
-                                (when-not (= (get x spec) new-val)
-                                  [spec new-val]))))
+                              ;; new-val doesn't match default, keep it
+                              (when-not (= (get x spec) v)
+                                [spec v])))
                       (coerce spec-form x opts)))
               x
               spec-forms)
