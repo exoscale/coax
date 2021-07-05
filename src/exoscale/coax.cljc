@@ -357,6 +357,7 @@
        (throw (ex-info "Invalid coerced value"
                        {:type :exoscale.coax/invalid-coerced-value
                         :val x
+                        :explain-data (s/explain-data spec coerced)
                         :coerced coerced
                         :spec spec}))))))
 
