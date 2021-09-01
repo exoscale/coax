@@ -1,4 +1,4 @@
-(defproject exoscale/coax "1.0.0-alpha13"
+(defproject exoscale/coax "1.0.0-alpha14-SNAPSHOT"
   :description "exo spec-coerce fork"
 
   :url "https://github.com/exoscale/coax"
