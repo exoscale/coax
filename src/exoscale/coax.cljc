@@ -38,7 +38,7 @@
                                  (map #(vector (keyword (name %)) %)))
                            (flatten (concat req-un opt-un)))]
     (fn [x opts]
-      (if (associative? x)
+      (if (map? x)
         (reduce-kv (fn [m k v]
                      (assoc m
                             k
@@ -74,7 +74,7 @@
 
 (defn gen-coerce-map-of [[_ kspec vspec & _]]
   (fn [x opts]
-    (if (associative? x)
+    (if (map? x)
       (into (empty x) ;; ensure we copy meta
             (map (fn [[k v]]
                    [(coerce kspec k opts)
@@ -101,7 +101,7 @@
                         first
                         .-mmvar))]
     (fn [x opts]
-      (if (associative? x)
+      (if (map? x)
         (coerce (s/form (f x))
                 x
                 opts)
@@ -110,7 +110,7 @@
 (defn gen-coerce-merge
   [[_ & spec-forms]]
   (fn [x opts]
-    (if (associative? x)
+    (if (map? x)
       (reduce (fn [m spec-form]
                 ;; for every spec-form coerce to new value;
                 ;; we need to compare key by key what changed so that
