@@ -14,7 +14,19 @@
 
 (defn to-string
   [x _]
-  (str x))
+  ;; we should only try to coerce "scalars"
+  (cond
+    (string? x)
+    x
+    (or (number? x)
+        (boolean? x)
+        (ident? x)
+        (inst? x)
+        (nil? x)
+        (uuid? x)
+        (uri? x))
+    (str x)
+    :else :exoscale.coax/invalid))
 
 (defn to-long
   [x _]
