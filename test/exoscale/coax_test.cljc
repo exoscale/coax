@@ -150,6 +150,9 @@
     `string? 42 "42"
     `string? :a ":a"
     `string? :foo/bar ":foo/bar"
+    `string? [] []
+    `string? {} {}
+    `string? #{} #{}
     `boolean? "true" true
     `boolean? "false" false
     `ident? ":foo/bar" :foo/bar
