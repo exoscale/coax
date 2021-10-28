@@ -19,6 +19,7 @@
     (string? x)
     x
     (or (number? x)
+        (char? x)
         (boolean? x)
         (ident? x)
         (inst? x)
