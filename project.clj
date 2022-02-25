@@ -8,7 +8,8 @@
   :dependencies [[org.clojure/clojure "1.10.1"]]
 
   :profiles {:dev {:dependencies [[org.clojure/test.check "0.9.0"]
-                                  [org.clojure/clojurescript "1.10.758"]]
+                                  [org.clojure/clojurescript "1.10.758"]
+                                  [net.cgrand/macrovich "0.2.1"]]
                    :plugins [[lein-cljsbuild "1.1.8" :exclusions [[org.clojure/clojure]]]
                              [lein-doo "0.1.10"]
                              [lein-figwheel "0.5.20"]
