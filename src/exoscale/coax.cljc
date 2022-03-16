@@ -12,6 +12,10 @@
 
 (declare coerce coerce*)
 
+(defn- empty-rec
+  [r]
+  (reduce-kv (fn [r k _] (assoc r k nil)) r r))
+
 (defn gen-coerce-or [[_ & pairs]]
   (fn [x opts]
     (let [xs (into []
@@ -50,15 +54,15 @@
                                         v
                                         opts)
                                 v))))
-                   (empty x)
+                   x
                    x)
         :exoscale.coax/invalid))))
 
 (defn gen-coerce-coll-of [[_ spec & {:as _opts :keys [kind]}]]
   (fn [x opts]
     (if (coll? x)
-      ;; either we have a `:kind` and coerce to that, or we
-      ;; just `empty` the original
+      ;; either we have a `:kind` and coerce to that, or we just `empty` the
+      ;; original
       (let [xs (into (condp = kind
                        `vector? []
                        `set? #{}
@@ -75,7 +79,9 @@
 (defn gen-coerce-map-of [[_ kspec vspec & _]]
   (fn [x opts]
     (if (map? x)
-      (into (empty x) ;; ensure we copy meta
+      (into (if (record? x)
+              (empty-rec x)
+              (empty x))
             (map (fn [[k v]]
                    [(coerce kspec k opts)
                     (coerce vspec v opts)]))
@@ -407,7 +413,7 @@
    (walk/prewalk (fn [x]
                    (cond->> x
                      (map? x)
-                     (into (empty x)
+                     (into x
                            (map (fn [[k v]]
                                   (if (qualified-keyword? k)
                                     [k (op (get idents k k) v opts)]

@@ -17,6 +17,8 @@
 
 #?(:clj (st/instrument))
 
+(defrecord Foo [])
+
 (s/def ::infer-int int?)
 (s/def ::infer-and-spec (s/and int? #(> % 10)))
 (s/def ::infer-and-spec-indirect (s/and ::infer-int #(> % 10)))
@@ -180,6 +182,7 @@
     `(s/coll-of int? :kind set?) #{"11" "foo" "42"} #{11 "foo" 42}
     `(s/coll-of int? :kind vector?) '("11" "foo" "42") [11 "foo" 42]
     `(s/every int?) ["11" "31" "42"] [11 31 42]
+    `(s/keys :req [::keyword-set]) (map->Foo {::keyword-set "a"}) (map->Foo {::keyword-set :a})
 
     `(s/map-of keyword? int?) {"foo" "42" "bar" "31"} {:foo 42 :bar 31}
     `(s/map-of keyword? int?) "foo" "foo"
@@ -251,6 +254,11 @@
             "2020-05-17T21:37:57.830-00:00" #inst "2020-05-17T21:37:57.830-00:00"
             "2018-09-28" #inst "2018-09-28")))
 
+(deftest test-records-coerce
+  (is (instance? Foo (sc/coerce-structure (map->Foo {::keyword-set "a"}))))
+  (is (instance? Foo (sc/coerce `(s/keys :req [::keyword-set]) (map->Foo {::keyword-set :a}))))
+  (is (instance? Foo (sc/coerce `(s/map-of keyword? any?) (map->Foo {::keyword-set :a})))))
+
 (deftest test-coerce-inference-test
   (are [keyword input output] (= (sc/coerce keyword input) output)
     ::infer-int "123" 123
@@ -286,7 +294,11 @@
           :sub {::infer-int 42}}))
   (is (= (sc/coerce-structure {::or-example "321"}
                               {::sc/op sc/conform})
-         {::or-example [:int 321]})))
+         {::or-example [:int 321]}))
+
+  (defrecord SomeRec [a])
+  (is (= (->SomeRec 1)
+         (sc/coerce-structure (->SomeRec 1)))))
 
 (s/def ::bool boolean?)
 (s/def ::simple-keys (s/keys :req [::infer-int]
@@ -423,7 +435,6 @@
   (is (= :exoscale.coax/invalid (sc/coerce* `int? [] {})))
   (is (= :exoscale.coax/invalid (sc/coerce* `(s/coll-of int?) 1 {})))
   (is (= :exoscale.coax/invalid (sc/coerce* ::int-set "" {}))))
-
 
 (deftest test-caching
   (s/def ::bs (s/keys :req [::bool]))
