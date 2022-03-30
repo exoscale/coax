@@ -188,10 +188,10 @@
     `(s/map-of keyword? int?) "foo" "foo"
     `(s/every-kv keyword? int?) {"foo" "42" "bar" "31"} {:foo 42 :bar 31}
 
-    ;; `(s/or :int int? :double double? :bool boolean?) "42" 42
-    ;; `(s/or :double double? :bool boolean?) "42.3" 42.3
+    `(s/or :int int? :double double? :bool boolean?) "42" 42
+    `(s/or :double double? :bool boolean?) "42.3" 42.3
 
-    ;; `(s/or :int int? :double double? :bool boolean?) "true" true
+    `(s/or :int int? :double double? :bool boolean?) "true" true
 
     `(s/or :b keyword? :a string?) "abc" "abc"
     `(s/or :a string? :b keyword?) "abc" "abc"
