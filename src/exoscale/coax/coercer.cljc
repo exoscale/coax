@@ -1,20 +1,12 @@
 (ns exoscale.coax.coercer
   (:refer-clojure :exclude [identity])
   (:require [clojure.string :as str]
-            #?(:clj [clojure.instant])
-            #?(:clj [net.cgrand.macrovich :as macros]))
-  #?(:cljs (:require-macros [net.cgrand.macrovich :as macros]
-                            [exoscale.coax.coercer :refer [invalid-on-throw!]])
+            #?@(:cljs [[cljs.reader]]
+                :clj [[clojure.instant]
+                      [exoscale.coax.utils :refer [invalid-on-throw!]]]))
+  #?(:cljs (:require-macros [exoscale.coax.utils :refer [invalid-on-throw!]])
      :clj (:import (java.util UUID)
                    (java.net URI))))
-
-(macros/deftime
-  (defmacro invalid-on-throw!
-    [& body]
-    `(try
-       ~@body
-       (catch ~(macros/case :clj 'Exception :cljs :default) _#
-         :exoscale.coax/invalid))))
 
 (defn to-string
   [x _]

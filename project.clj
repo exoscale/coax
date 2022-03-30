@@ -5,23 +5,11 @@
 
   :license {:name "ISC"}
 
-  :dependencies [[org.clojure/clojure "1.11.0"]
-                 [net.cgrand/macrovich "0.2.1"]]
+  :dependencies [[org.clojure/clojure "1.11.0"]]
 
   :profiles {:dev {:dependencies [[org.clojure/test.check "0.9.0"]
-                                  [org.clojure/clojurescript "1.10.758"]]
-                   :plugins [[lein-cljsbuild "1.1.8" :exclusions [[org.clojure/clojure]]]
-                             [lein-doo "0.1.10"]
-                             [lein-figwheel "0.5.20"]
-                             [lein-cljfmt "0.7.0"]]
-                   :cljfmt {:remove-multiple-non-indenting-spaces? true}
-                   :cljsbuild {:builds [{:id "test"
-                                         :source-paths ["src" "test"]
-                                         :compiler {:main exoscale.coax.cljs-test-runner
-                                                    :optimizations :none
-                                                    :output-to "resources/public/cljs/tests/all-tests.js"}}]}
-
-                   :doo {:build "test"}}}
+                                  [org.clojure/clojurescript "1.11.4"]]
+                   :cljfmt {:remove-multiple-non-indenting-spaces? true}}}
   :pedantic? :warn
 
   :release-tasks [["vcs" "assert-committed"]
