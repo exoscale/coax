@@ -257,7 +257,7 @@
   qualified-keyword or qualified symbol, or checking if the value is
   an enum value (homogeneous set) and lastly if it's a s-exp form that
   indicates a spec form likely it will return it's generated coercer
-  from registry :exoscale.coax/form , otherwise the it returns the
+  from registry :exoscale.coax/forms, otherwise it returns the
   identity coercer"
   [spec {:as opts :exoscale.coax/keys [enums]}]
   (let [spec-exp (si/spec-root spec)

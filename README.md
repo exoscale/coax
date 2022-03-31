@@ -101,7 +101,7 @@ Learn by example:
 (ns exoscale.coax.example
   (:require
     [clojure.spec.alpha :as s]
-    [exoscale.coax:as c]))
+    [exoscale.coax :as c]))
 
 ; Define a spec as usual
 (s/def ::number int?)
@@ -227,7 +227,7 @@ Examples from predicate to coerced value:
 (c/coerce `decimal? "42.42") ; => 42.42M
 (c/coerce `decimal? "42.42M") ; => 42.42M
 
-;; Throw exception when coercipon fails
+;; Throw exception when coercion fails
 (c/coerce! ::number "abc") ; => throws (ex-info "Failed to coerce value" {:spec ::number :val "abc" ...})
 (c/coerce! :simple-keyword "abc") ; => "abc", coerce! doesn't do anything on simple keywords
 
@@ -245,10 +245,10 @@ Examples from predicate to coerced value:
 
 Coax applies caching of coercers function to cut the cost of walking
 specs and generating coercers per call, it makes the coercion process
-orders of magnitude faster once cache (depends on what the coercion
+orders of magnitude faster once cached (depends on what the coercion
 does of course). It is `on` by default. The cache is under
 `exoscale.coax/coercer-cache`, it's just an atom holding a map of
-`[spec, options] -> coercer`. In most case you shouldn't have to care
+`[spec, options] -> coercer`. In most cases you shouldn't have to care
 about this, for instance when you define static coercers via
 `coax/def` we'll make sure the cache is updated accordingly. But
 during development you might need to be aware of the existence of that

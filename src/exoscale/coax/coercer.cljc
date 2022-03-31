@@ -33,7 +33,9 @@
             :cljs (if (= "NaN" x)
                     js/NaN
                     (let [v (js/parseInt x)]
-                      (if (js/isNaN v) x v))))
+                      (if (js/isNaN v)
+                        :exoscale.coax/invalid
+                        v))))
          (number? x) (long x)
          :else :exoscale.coax/invalid)))
 
@@ -52,7 +54,9 @@
             :cljs (if (= "NaN" x)
                     js/NaN
                     (let [v (js/parseFloat x)]
-                      (if (js/isNaN v) x v))))
+                      (if (js/isNaN v)
+                        :exoscale.coax/invalid
+                        v))))
          (number? x) (double x)
          :else :exoscale.coax/invalid)))
 
