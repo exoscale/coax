@@ -2,18 +2,20 @@
   #?(:cljs (:require-macros [cljs.test :refer [deftest testing is are]]
                             [exoscale.coax :as sc]))
   (:require
-   #?(:clj [clojure.test :refer [deftest testing is are]])
-   [clojure.spec.alpha :as s]
-   [clojure.string :as str]
-   [clojure.test.check :as tc]
-   [clojure.test.check.generators]
-   [clojure.test.check.properties :as prop]
-   [clojure.spec.test.alpha :as st]
-   #?(:clj [clojure.test.check.clojure-test :refer [defspec]])
-   #?(:cljs [clojure.test.check.clojure-test :refer-macros [defspec]])
-   [exoscale.coax :as sc]
-   [exoscale.coax.coercer :as c])
+    #?(:clj [clojure.test :refer [deftest testing is are]])
+    [clojure.spec.alpha :as s]
+    [clojure.string :as str]
+    [clojure.test.check :as tc]
+    [clojure.test.check.generators]
+    [clojure.test.check.properties :as prop]
+    [clojure.spec.test.alpha :as st]
+    #?(:cljs [clojure.test.check.clojure-test :refer-macros [defspec]])
+    [exoscale.coax :as sc]
+    [exoscale.coax.coercer :as c])
   #?(:clj (:import (java.net URI))))
+
+#?(:bb  nil
+   :clj (require '[clojure.test.check.clojure-test :refer [defspec]]))
 
 #?(:clj (st/instrument))
 
@@ -212,7 +214,7 @@
               `decimal? "42.42M" 42.42M])))
 
 (def test-gens
-  {`inst? (s/gen (s/inst-in #inst "1980" #inst "9999"))})
+     {`inst? (s/gen (s/inst-in #inst "1980" #inst "9999"))})
 
 #?(:cljs
    (defn ->js [var-name]
