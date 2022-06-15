@@ -364,6 +364,7 @@
                        {:type :exoscale.coax/invalid-coerced-value
                         :val x
                         :coerced coerced
+                        :explain-data (s/explain-data spec coerced)
                         :spec spec}))))))
 
 (s/fdef conform
