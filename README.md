@@ -1,25 +1,20 @@
 # coax
 
-Clojure.spec coercion library for clj(s).
+Clojure.spec coercion library for clj(s)
 
-It started as a fork of
-[spec-coerce](https://github.com/wilkerlucio/spec-coerce), which
-brings a really nice approach to spec based coercion, very much in
-line with the spec api. Major props to @wilkerlucio for his work on
-that library it really opened our eyes on how such an api should look
-like.
+Most Coax "public" functions take a spec and a value and try to return a new
+value that conforms to that spec by altering the input value when possible and
+most importantly when it makes sense.
 
-As we were patching/changing it internally more and more to fit our
-needs, it has reached a state where the internals are quite different,
-it can also do things spec-coerce does not support and change some
-defaults that didn't match our usage.
+Coax is centred around its own registry for coercion rules, when a coercion is
+not registered it can infer in most cases what to do to coerce a value into
+something that conforms to a spec. It also supports "coerce time" options to
+enable custom coercion from any spec type, including spec `forms` (like
+s/coll-of & co) or just `idents` (predicates, registered specs).
 
-Coax is centred around its own registry for coercion rules, when a
-coercion is not registered it can infer in most cases what to do to
-coerce a value into something that conforms to a spec. It also
-supports "coerce time" options to enable custom coercion from any spec
-type, including spec `forms` (like s/coll-of & co) or just `idents`
-(predicates, registered specs).
+Coax initially started as a fork of spec-coerce, but nowadays the internals and
+the API are very different. Wilker Lúcio's approach gave us a nice outline of
+how such library could expose its functionality.
 
 ## What
 
