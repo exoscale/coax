@@ -44,7 +44,7 @@ merged with the internal registry at coerce time.
 
 ```clj
 (s/def ::foo keyword?)
-(c/coerce ::foo "bar" {::c/idents {::foo (fn [x opts] (str "keyword:" x)})}) -> "keyword:bar"
+(c/coerce ::foo "bar" {::c/idents {::foo (fn [x opts] (str "keyword:" x))}}) -> "keyword:bar"
 ```
 
 Coercers are functions of 2 args, the value, and the options coerce
