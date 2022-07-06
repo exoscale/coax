@@ -36,21 +36,29 @@
                       (if (js/isNaN v)
                         :exoscale.coax/invalid
                         v))))
-         (number? x) (long x)
+
+         (or (double? x)
+             (float? x))
+         (long x)
+
+         #?@(:clj ((ratio? x) (long x)))
+
+         (number? x) x
+
          :else :exoscale.coax/invalid)))
 
 (defn to-double
   [x _]
   (invalid-on-throw!
    (cond (string? x)
-         #?(:clj  (case x
-                    "##-Inf" ##-Inf
-                    "##Inf" ##Inf
-                    "##NaN" ##NaN
-                    "NaN" ##NaN
-                    "Infinity" ##Inf
-                    "-Infinity" ##-Inf
-                    (Double/parseDouble x))
+         #?(:clj (case x
+                   "##-Inf" ##-Inf
+                   "##Inf" ##Inf
+                   "##NaN" ##NaN
+                   "NaN" ##NaN
+                   "Infinity" ##Inf
+                   "-Infinity" ##-Inf
+                   (Double/parseDouble x))
             :cljs (if (= "NaN" x)
                     js/NaN
                     (let [v (js/parseFloat x)]

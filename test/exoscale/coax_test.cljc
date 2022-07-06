@@ -447,3 +447,7 @@
   (is (= false (::bool (sc/coerce ::bs
                                   {::bool "false"}
                                   {:exoscale.coax/cache? false})))))
+
+(deftest numerics-test
+  (testing "ensure we preserve numeric types"
+    #?(:clj (is (instance? Integer (sc/coerce `int? (int 1)))))))
