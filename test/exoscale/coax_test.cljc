@@ -243,11 +243,10 @@
                                                (s/valid? sp (sc/coerce s (-> (pr-str v)
                                                                              (str/replace #"^#[^\"]+\"|\"]?$"
                                                                                           ""))))))]
-         (if-not (= true (:result res))
-           (throw (ex-info (str "Error coercing " s)
-                           {:symbol s
-                            :spec sp
-                            :result res})))))))
+         (is (:result res)
+             (str "Error coercing " {:symbol s
+                                     :spec sp
+                                     :result res}))))))
 
 #?(:clj (deftest test-coerce-inst
           (are [input output] (= (sc/coerce `inst? input)
@@ -448,6 +447,7 @@
                                   {::bool "false"}
                                   {:exoscale.coax/cache? false})))))
 
-(deftest numerics-test
-  (testing "ensure we preserve numeric types"
-    #?(:clj (is (instance? Integer (sc/coerce `int? (int 1)))))))
+#?(:clj
+   (deftest numerics-test
+     (testing "ensure we preserve numeric types"
+       (is (instance? Integer (sc/coerce `int? (int 1)))))))
