@@ -3,12 +3,16 @@
   (:require [exoscale.coax.inspect :as si]
             [exoscale.coax.coercer :as c]
             [clojure.spec.alpha :as s]
-            [clojure.walk :as walk])
+            [clojure.walk :as walk]
+            #?(:clj [net.cgrand.macrovich :as macros]))
   #?(:clj
      (:import (clojure.lang Keyword)
               (java.util Date UUID)
               (java.time Instant)
-              (java.net URI))))
+              (java.net URI)))
+  #?(:cljs
+     (:require-macros [net.cgrand.macrovich :as macros]
+                      [exoscale.coax :refer [def]])))
 
 (declare coerce coerce*)
 
@@ -396,11 +400,12 @@
   :args (s/cat :k ::reg-spec
                :coercion any?)
   :ret qualified-keyword?)
-(defmacro def
-  "Given a namespace-qualified keyword, and a coerce function, makes an
+(macros/deftime
+  (defmacro def
+    "Given a namespace-qualified keyword, and a coerce function, makes an
   entry in the registry mapping k to the coerce function."
-  [k coercion]
-  `(def-impl '~k ~coercion))
+    [k coercion]
+    `(def-impl '~k ~coercion)))
 
 (s/fdef coerce-structure
   :args (s/cat :x any?

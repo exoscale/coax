@@ -1,7 +1,19 @@
-{:deps {}
+{:exoscale.project/lib exoscale/coax
+ :exoscale.project/version-file "VERSION"
+ :exoscale.project/deploy? true
+ :slipset.deps-deploy/exec-args {:installer :remote
+                                 :sign-releases? false
+                                 :repository "clojars"}
+
+ :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+        net.cgrand/macrovich {:mvn/version "0.2.1"}}
 
  :aliases
- {:test
+ {:project {:deps {io.github.exoscale/tools.project {:git/sha "5f24196ebea4dc6e601d201d97b463ea26923c7e"}}
+            :ns-default exoscale.tools.project
+            :jvm-opts ["-Dclojure.main.report=stderr"]}
+
+  :test
   {:extra-deps {org.clojure/test.check {:mvn/version "1.1.1"}
                 lambdaisland/kaocha {:mvn/version "1.71.1119"}
                 com.lambdaisland/kaocha-cljs {:mvn/version "1.4.130"}}
