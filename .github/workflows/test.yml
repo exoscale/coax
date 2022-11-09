@@ -6,20 +6,23 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v1
+      - name: Checkout
+        uses: actions/checkout@v3
 
-      - name: Install leiningen
-        uses: DeLaGuardo/setup-clojure@master
+      - name: Prepare java
+        uses: actions/setup-java@v3
         with:
-          lein: 2.9.3
+          java-version: '11'
+          distribution: 'zulu'
+          architecture: 'x64'
 
-      - name: Cache maven
-        uses: actions/cache@v1
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@10.0
         with:
-          path: ~/.m2
-          key: m2-${{ hashFiles('project.clj') }}
-          restore-keys: |
-            m2-
-      - name: Test
-        run: lein test
+          cli: 1.11.1.1182
+
+      - name: Run clj tests
+        run: ./bin/kaocha clj
+
+      - name: Run cljs tests
+        run: ./bin/kaocha cljs
