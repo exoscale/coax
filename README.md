@@ -75,7 +75,7 @@ easily for instance generate open-api definitions using these.
           {::c/forms {`s/coll-of (fn [[_ spec]] (fn [x opts] (do-something-crazy-with-spec+the-value spec x opts)))}})
 ```
 
-## Closed keys
+### Closed maps
 
 `coax` also allows to *close* maps specced with `s/keys`. 
 
