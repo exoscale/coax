@@ -3,14 +3,14 @@
                             [exoscale.coax :as sc]))
   (:require
    #?(:clj [clojure.test :refer [deftest testing is are]])
+   #?(:clj [clojure.test.check.clojure-test :refer [defspec]])
+   #?(:cljs [clojure.test.check.clojure-test :refer-macros [defspec]])
    [clojure.spec.alpha :as s]
+   [clojure.spec.test.alpha :as st]
    [clojure.string :as str]
    [clojure.test.check :as tc]
    [clojure.test.check.generators]
    [clojure.test.check.properties :as prop]
-   [clojure.spec.test.alpha :as st]
-   #?(:clj [clojure.test.check.clojure-test :refer [defspec]])
-   #?(:cljs [clojure.test.check.clojure-test :refer-macros [defspec]])
    [exoscale.coax :as sc]
    [exoscale.coax.coercer :as c])
   #?(:clj (:import (java.net URI))))
@@ -375,6 +375,20 @@
   (is (= (sc/coerce ::unqualified {:foo "1" :bar "hi"})
          {:foo 1 :bar "hi"})))
 
+(deftest test-closed-keys
+  (s/def ::zzz string?)
+  (s/def ::test-closed-keys (s/keys :req [::bar ::foo]))
+  (is (= (sc/coerce ::test-closed-keys {::foo 1 ::bar 2 ::zzz 3})
+         {::foo 1 ::bar "2" ::zzz "3"}))
+  (is (= (sc/coerce ::test-closed-keys {::foo 1 ::bar 2 ::baz 3} {:closed-keys? true})
+         {::foo 1 ::bar "2"}))
+
+  (s/def ::test-closed-keys2 (s/keys :req-un [::bar ::foo]))
+  (is (= (sc/coerce ::test-closed-keys2 {:foo 1 :bar 2 :zzz 3})
+         {:foo 1 :bar "2" :zzz 3}))
+  (is (= (sc/coerce ::test-closed-keys2 {:foo 1 :bar 2 :baz 3} {:closed-keys? true})
+         {:foo 1 :bar "2"})))
+
 (s/def ::tuple (s/tuple ::foo ::bar int?))
 
 (deftest test-tuple
@@ -389,9 +403,14 @@
   (is (= {:foo 1 :bar "1" :c {:a 2}}
          (sc/coerce ::merge {:foo "1" :bar 1 :c {:a 2}}))
       "Coerce new vals appropriately")
+
   (is (= {:foo 1 :bar "1" :c {:a 2}}
          (sc/coerce ::merge {:foo 1 :bar "1" :c {:a 2}}))
       "Leave out ok vals")
+
+  (is (= {:foo 1 :bar "1" :c {:a 2}}
+         (sc/coerce ::merge {:foo "1" :bar 1 :c {:a 2}}))
+      "Coerce new vals appropriately")
 
   (s/def ::merge2 (s/merge (s/keys :req [::foo])
                            ::unqualified))

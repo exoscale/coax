@@ -1,10 +1,10 @@
 (ns exoscale.coax
   (:refer-clojure :exclude [def])
-  (:require [exoscale.coax.inspect :as si]
-            [exoscale.coax.coercer :as c]
+  (:require #?(:clj [net.cgrand.macrovich :as macros])
             [clojure.spec.alpha :as s]
             [clojure.walk :as walk]
-            #?(:clj [net.cgrand.macrovich :as macros]))
+            [exoscale.coax.coercer :as c]
+            [exoscale.coax.inspect :as si])
   #?(:clj
      (:import (clojure.lang Keyword)
               (java.util Date UUID)
@@ -40,24 +40,32 @@
     (coerce spec x opts)))
 
 (defn gen-coerce-keys
-  [[_ & {:keys [req-un opt-un]}]]
-  (let [keys-mapping (into {}
-                           (comp (filter keyword?)
-                                 (map #(vector (keyword (name %)) %)))
-                           (flatten (concat req-un opt-un)))]
-    (fn [x opts]
+  [[_ & {:as _opts :keys [req-un opt-un req opt]}]]
+  (let [keys-mapping-unns (into {}
+                                (keep #(when (keyword? %)
+                                         [(keyword (name %)) %]))
+                                (flatten (concat req-un opt-un)))
+        keys-mapping-ns (into {}
+                              (map (juxt identity identity))
+                              (flatten (concat req opt)))
+        keys-mapping (merge keys-mapping-unns keys-mapping-ns)]
+    (fn [x {:as opts :keys [closed-keys?]}]
       (if (map? x)
         (reduce-kv (fn [m k v]
-                     (assoc m
-                            k
-                            (let [s (or (keys-mapping k) k)]
-                              ;; only try to coerce registered specs
-                              ;; from mapping
-                              (if (qualified-ident? s)
+                     (let [s-from-mapping (keys-mapping k)
+                           s (or s-from-mapping k)]
+                       (cond
+                         ;; if closed and not in mapping dissoc
+                         (and closed-keys? (not s-from-mapping))
+                         (dissoc m k)
+                         ;; registered spec -> coerce
+                         (qualified-ident? s)
+                         (assoc m k
                                 (coerce s
                                         v
-                                        opts)
-                                v))))
+                                        opts))
+                         ;; passthrough
+                         :else m)))
                    x
                    x)
         :exoscale.coax/invalid))))
@@ -119,20 +127,14 @@
 
 (defn gen-coerce-merge
   [[_ & spec-forms]]
-  (fn [x opts]
+  (fn [x {:as opts :keys [closed-keys?]}]
     (if (map? x)
-      (reduce (fn [m spec-form]
-                ;; for every spec-form coerce to new value;
-                ;; we need to compare key by key what changed so that
-                ;; defaults do not overwrite coerced values
-                (into m
-                      (keep (fn [[spec v]]
-                              ;; new-val doesn't match default, keep it
-                              (when-not (= (get x spec) v)
-                                [spec v])))
-                      (coerce spec-form x opts)))
-              x
-              spec-forms)
+      (into (if closed-keys? {} x)
+            (map (fn [spec-form]
+                   (coerce spec-form
+                           x
+                           (assoc opts :closed-keys? true))))
+            spec-forms)
       :exoscale.coax/invalid)))
 
 (defn gen-coerce-nilable
@@ -425,3 +427,14 @@
                                     [k (op (get idents k k) v opts)]
                                     [k v]))))))
                  x)))
+
+(s/def ::foo string?)
+(s/def ::bar string?)
+(s/def ::z string?)
+
+(s/def ::m (s/keys :req-un [::foo ::bar]))
+
+(coerce ::m {:foo "f" :bar "b" :baz "x"} {:closed-keys? true}) ; baz is not on the spec
+
+(coerce `(s/merge ::m (s/keys :req-un [::z]))
+        {:foo "f" :bar "b" :baz "x" :z "z"} {:closed-keys? true}) ; baz is not on the spec

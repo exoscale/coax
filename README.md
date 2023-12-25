@@ -6,19 +6,19 @@ Most Coax "public" functions take a spec and a value and try to return a new
 value that conforms to that spec by altering the input value when possible and
 most importantly when it makes sense.
 
-Coax is centred around its own registry for coercion rules, when a coercion is
+Coax is centered around its own registry for coercion rules, when a coercion is
 not registered it can infer in most cases what to do to coerce a value into
 something that conforms to a spec. It also supports "coerce time" options to
 enable custom coercion from any spec type, including spec `forms` (like
 s/coll-of & co) or just `idents` (predicates, registered specs).
 
 Coax initially started as a fork of spec-coerce, but nowadays the internals and
-the API are very different. Wilker Lúcio's approach gave us a nice outline of
+the API are totally different. Wilker Lúcio's approach gave us a nice outline of
 how such library could expose its functionality.
 
 ## What
 
-The typical (infered) example would be :
+The typical (inferred) example would be :
 
 ```clj
 (s/def ::foo keyword?)
@@ -71,8 +71,37 @@ you to support any spec form like inst-in, coll-of, .... You could
 easily for instance generate open-api definitions using these.
 
 ```clj
-(s/coerce ::foo (s/coll-of keyword?)
+(c/coerce ::foo (s/coll-of keyword?)
           {::c/forms {`s/coll-of (fn [[_ spec]] (fn [x opts] (do-something-crazy-with-spec+the-value spec x opts)))}})
+```
+
+## Closed keys
+
+`coax` also allows to *close* maps specced with `s/keys`. 
+
+If you call `coerce` using the option `{:closed-keys? true ...}` if a value
+corresponding to a `s/keys` spec is encountered it will effectively remove all
+unknown keys from the returned value.
+
+``` clj
+(s/def ::foo string?)
+(s/def ::bar string?)
+(s/def ::z string?)
+
+(s/def ::m (s/keys :req-un [::foo ::bar]))
+
+(c/coerce ::m {:foo "f" :bar "b" :baz "z"} {:closed-keys? true}) ; baz is not on the spec
+-> {:foo "f" :bar "b"} ; it gets removed
+
+;; this works in any s/keys matching spec in the data passed:
+(coerce `(s/coll-of ::m) [{:foo "f" :bar "b" :baz "x"}] {:closed-keys? true})
+-> [{:foo "f" :bar "b"}]
+
+;; also plays nice with s/merge, multi-spec & co
+(coerce `(s/merge ::m (s/keys :req-un [::z]))
+        {:foo "f" :bar "b" :baz "x" :z "z"} {:closed-keys? true}) 
+        
+-> {:foo "f" :bar "b" :z "z"}
 ```
 
 ## Documentation
