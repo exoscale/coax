@@ -49,14 +49,14 @@
                               (map (juxt identity identity))
                               (flatten (concat req opt)))
         keys-mapping (merge keys-mapping-unns keys-mapping-ns)]
-    (fn [x {:as opts :keys [closed-keys?]}]
+    (fn [x {:as opts :keys [closed]}]
       (if (map? x)
         (reduce-kv (fn [m k v]
                      (let [s-from-mapping (keys-mapping k)
                            s (or s-from-mapping k)]
                        (cond
                          ;; if closed and not in mapping dissoc
-                         (and closed-keys? (not s-from-mapping))
+                         (and closed (not s-from-mapping))
                          (dissoc m k)
                          ;; registered spec -> coerce
                          (qualified-ident? s)
@@ -127,13 +127,13 @@
 
 (defn gen-coerce-merge
   [[_ & spec-forms]]
-  (fn [x {:as opts :keys [closed-keys?]}]
+  (fn [x {:as opts :keys [closed]}]
     (if (map? x)
-      (into (if closed-keys? {} x)
+      (into (if closed {} x)
             (map (fn [spec-form]
                    (coerce spec-form
                            x
-                           (assoc opts :closed-keys? true))))
+                           (assoc opts :closed true))))
             spec-forms)
       :exoscale.coax/invalid)))
 
@@ -315,7 +315,7 @@
 
 (defn coerce-fn
   [spec opts]
-  (if (:exoscale.coax/cache? opts true)
+  (if (:exoscale.coax/cache opts true)
     (cached-coerce-fn spec opts)
     (coerce-fn* spec opts)))
 
@@ -434,7 +434,7 @@
 
 (s/def ::m (s/keys :req-un [::foo ::bar]))
 
-(coerce ::m {:foo "f" :bar "b" :baz "x"} {:closed-keys? true}) ; baz is not on the spec
+(coerce ::m {:foo "f" :bar "b" :baz "x"} {:closed true}) ; baz is not on the spec
 
 (coerce `(s/merge ::m (s/keys :req-un [::z]))
-        {:foo "f" :bar "b" :baz "x" :z "z"} {:closed-keys? true}) ; baz is not on the spec
+        {:foo "f" :bar "b" :baz "x" :z "z"} {:closed true}) ; baz is not on the spec

@@ -79,7 +79,7 @@ easily for instance generate open-api definitions using these.
 
 `coax` also allows to *close* maps specced with `s/keys`. 
 
-If you call `coerce` using the option `{:closed-keys? true ...}` if a value
+If you call `coerce` using the option `{:closed true ...}` if a value
 corresponding to a `s/keys` spec is encountered it will effectively remove all
 unknown keys from the returned value.
 
@@ -90,16 +90,16 @@ unknown keys from the returned value.
 
 (s/def ::m (s/keys :req-un [::foo ::bar]))
 
-(c/coerce ::m {:foo "f" :bar "b" :baz "z"} {:closed-keys? true}) ; baz is not on the spec
+(c/coerce ::m {:foo "f" :bar "b" :baz "z"} {:closed true}) ; baz is not on the spec
 -> {:foo "f" :bar "b"} ; it gets removed
 
 ;; this works in any s/keys matching spec in the data passed:
-(coerce `(s/coll-of ::m) [{:foo "f" :bar "b" :baz "x"}] {:closed-keys? true})
+(coerce `(s/coll-of ::m) [{:foo "f" :bar "b" :baz "x"}] {:closed true})
 -> [{:foo "f" :bar "b"}]
 
 ;; also plays nice with s/merge, multi-spec & co
 (coerce `(s/merge ::m (s/keys :req-un [::z]))
-        {:foo "f" :bar "b" :baz "x" :z "z"} {:closed-keys? true}) 
+        {:foo "f" :bar "b" :baz "x" :z "z"} {:closed true}) 
         
 -> {:foo "f" :bar "b" :z "z"}
 ```
@@ -279,7 +279,7 @@ during development you might need to be aware of the existence of that
 cache (ex if you defined a bugged coercer, or while doing REPL dev).
 
 In any case you can turn off the cache by passing
-`:exoscale.coax/cache? false` to the options of
+`:exoscale.coax/cache false` to the options of
 coerce/conform/coerce-structure, alternatively you can manually fiddle
 with the cache under `exoscale.coax/coercer-cache`, for instance via
 `(reset! exoscale.coax/coercer-cache {})`.
