@@ -1,6 +1,17 @@
 {:exoscale.project/lib exoscale/coax
  :exoscale.project/version-file "VERSION"
  :exoscale.project/deploy? true
+ :exoscale.project/pom-data
+ [[:licenses
+   [:license
+    [:name "MIT"]
+    [:url "https://opensource.org/license/mit/"]
+    [:distribution "repo"]]
+   [:license
+    [:name "ISC"]
+    [:url "https://opensource.org/license/isc-license-txt/"]
+    [:distribution "repo"]]]]
+
  :slipset.deps-deploy/exec-args {:installer :remote
                                  :sign-releases? false
                                  :repository "clojars"}
