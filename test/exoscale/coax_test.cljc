@@ -1,4 +1,4 @@
-(ns coax-test
+(ns exoscale.coax-test
   #?(:cljs (:require-macros [cljs.test :refer [deftest testing is are]]
                             [exoscale.coax :as sc]))
   (:require

@@ -271,15 +271,11 @@
   indicates a spec form likely it will return it's generated coercer
   from registry :exoscale.coax/forms, otherwise it returns the
   identity coercer"
-  [spec {:as opts :keys [enums]}]
+  [spec {:as _opts :keys [idents forms enums]}]
   (let [spec-exp (si/spec-root spec)
         {:as reg :exoscale.coax/keys [idents]} (-> @registry-ref
-                                                   (update :exoscale.coax/idents
-                                                           merge
-                                                           (:idents opts))
-                                                   (update :exoscale.coax/forms
-                                                           merge
-                                                           (:forms opts))
+                                                   (update :exoscale.coax/idents merge idents)
+                                                   (update :exoscale.coax/forms merge forms)
                                                    (cond-> enums
                                                      (assoc :exoscale.coax/enums enums)))]
     (or (cond (qualified-ident? spec-exp)
@@ -321,7 +317,7 @@
 
 (defn coerce-fn
   [spec opts]
-  (if (:exoscale.coax/cache opts true)
+  (if (:cache opts true)
     (cached-coerce-fn spec opts)
     (coerce-fn* spec opts)))
 
