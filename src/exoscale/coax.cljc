@@ -45,6 +45,7 @@
                                 (keep #(when (keyword? %)
                                          [(keyword (name %)) %]))
                                 (flatten (concat req-un opt-un)))
+        _ (prn :keys-mapping-unns keys-mapping-unns)
         keys-mapping-ns (into {}
                               (map (juxt identity identity))
                               (flatten (concat req opt)))
@@ -127,14 +128,20 @@
 
 (defn gen-coerce-merge
   [[_ & spec-forms]]
-  (fn [x {:as opts :keys [closed]}]
+  (fn [x opts]
     (if (map? x)
-      (into (if closed {} x)
-            (map (fn [spec-form]
-                   (coerce spec-form
-                           x
-                           (assoc opts :closed true))))
-            spec-forms)
+      (reduce (fn [m spec-form]
+                ;; for every spec-form coerce to new value;
+                ;; we need to compare key by key what changed so that
+                ;; defaults do not overwrite coerced values
+                (into m
+                      (keep (fn [[spec v]]
+                              ;; new-val doesn't match default, keep it
+                              (when-not (= (get x spec) v)
+                                [spec v])))
+                      (coerce spec-form x (assoc opts :closed true))))
+              x
+              spec-forms)
       :exoscale.coax/invalid)))
 
 (defn gen-coerce-nilable
@@ -148,7 +155,7 @@
     "takes enum value `x` and returns matching predicate to resolve
     coercer from registry"))
 
-(defonce ^:private registry-ref
+(def ^:private registry-ref
   (atom {:exoscale.coax/forms
          {`s/or gen-coerce-or
           `s/and gen-coerce-and
@@ -159,8 +166,8 @@
           `s/every-kv gen-coerce-map-of
           `s/tuple gen-coerce-tuple
           `s/multi-spec gen-coerce-multi-spec
-          `s/keys gen-coerce-keys
-          `s/merge gen-coerce-merge
+          `s/keys #'gen-coerce-keys
+          `s/merge #'gen-coerce-merge
           `s/inst-in (constantly c/to-inst)
           `s/int-in (constantly c/to-long)
           `s/double-in (constantly c/to-double)}
