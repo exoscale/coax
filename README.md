@@ -79,7 +79,7 @@ easily for instance generate open-api definitions using these.
 
 `coax` also allows to *close* maps specced with `s/keys`. 
 
-If you call `coerce` using the option `{:exoscale.coax/closed true ...}` if a value
+If you call `coerce` using the option `{:closed true ...}` if a value
 corresponding to a `s/keys` spec is encountered it will effectively remove all
 unknown keys from the returned value.
 
@@ -278,11 +278,10 @@ about this, for instance when you define static coercers via
 during development you might need to be aware of the existence of that
 cache (ex if you defined a bugged coercer, or while doing REPL dev).
 
-In any case you can turn off the cache by passing
-`:exoscale.coax/cache false` to the options of
-coerce/conform/coerce-structure, alternatively you can manually fiddle
-with the cache under `exoscale.coax/coercer-cache`, for instance via
-`(reset! exoscale.coax/coercer-cache {})`.
+In any case you can turn off the cache by passing `:cache false` to the options
+of coerce/conform/coerce-structure, alternatively you can manually fiddle with
+the cache under `exoscale.coax/coercer-cache`, for instance via `(reset!
+exoscale.coax/coercer-cache {})`.
 
 ## License
 
