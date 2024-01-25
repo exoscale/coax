@@ -399,7 +399,7 @@
   (s/def ::merge (s/merge (s/keys :req-un [::foo])
                           ::unqualified
                           ;; TODO: add s/multi-spec test
-                          ))
+                          any?))
   (is (= {:foo 1 :bar "1" :c {:a 2}}
          (sc/coerce ::merge {:foo "1" :bar 1 :c {:a 2}}))
       "Coerce new vals appropriately")
