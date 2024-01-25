@@ -49,7 +49,7 @@
                               (map (juxt identity identity))
                               (flatten (concat req opt)))
         keys-mapping (merge keys-mapping-unns keys-mapping-ns)]
-    (fn [x {:as opts :keys [closed]}]
+    (fn [x {:as opts :exoscale.coax/keys [closed]}]
       (if (map? x)
         (reduce-kv (fn [m k v]
                      (let [s-from-mapping (keys-mapping k)
@@ -138,7 +138,7 @@
                               ;; new-val doesn't match default, keep it
                               (when-not (= (get x spec) v)
                                 [spec v])))
-                      (coerce spec-form x (assoc opts :closed true))))
+                      (coerce spec-form x (assoc opts :exoscale.coax/closed true))))
               x
               spec-forms)
       :exoscale.coax/invalid)))
@@ -433,14 +433,3 @@
                                     [k (op (get idents k k) v opts)]
                                     [k v]))))))
                  x)))
-
-(s/def ::foo string?)
-(s/def ::bar string?)
-(s/def ::z string?)
-
-(s/def ::m (s/keys :req-un [::foo ::bar]))
-
-(coerce ::m {:foo "f" :bar "b" :baz "x"} {:closed true}) ; baz is not on the spec
-
-(coerce `(s/merge ::m (s/keys :req-un [::z]))
-        {:foo "f" :bar "b" :baz "x" :z "z"} {:closed true}) ; baz is not on the spec
