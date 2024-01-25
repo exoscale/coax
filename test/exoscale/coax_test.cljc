@@ -380,13 +380,13 @@
   (s/def ::test-closed-keys (s/keys :req [::bar ::foo]))
   (is (= (sc/coerce ::test-closed-keys {::foo 1 ::bar 2 ::zzz 3})
          {::foo 1 ::bar "2" ::zzz "3"}))
-  (is (= (sc/coerce ::test-closed-keys {::foo 1 ::bar 2 ::baz 3} {:closed true})
+  (is (= (sc/coerce ::test-closed-keys {::foo 1 ::bar 2 ::baz 3} {:exoscale.coax/closed true})
          {::foo 1 ::bar "2"}))
 
   (s/def ::test-closed-keys2 (s/keys :req-un [::bar ::foo]))
   (is (= (sc/coerce ::test-closed-keys2 {:foo 1 :bar 2 :zzz 3})
          {:foo 1 :bar "2" :zzz 3}))
-  (is (= (sc/coerce ::test-closed-keys2 {:foo 1 :bar 2 :baz 3} {:closed true})
+  (is (= (sc/coerce ::test-closed-keys2 {:foo 1 :bar 2 :baz 3} {:exoscale.coax/closed true})
          {:foo 1 :bar "2"})))
 
 (s/def ::tuple (s/tuple ::foo ::bar int?))
