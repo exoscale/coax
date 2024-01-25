@@ -293,7 +293,7 @@
           :unqualified 12
           :sub {::infer-int 42}}))
   (is (= (sc/coerce-structure {::or-example "321"}
-                              {::sc/op sc/conform})
+                              {:op sc/conform})
          {::or-example [:int 321]}))
 
   (defrecord SomeRec [a])
@@ -430,7 +430,7 @@
   (is (= {::x :y/quux}
          (sc/coerce ::mm
                     {::x "quux"}
-                    {::sc/cache? false}))))
+                    {:cache? false}))))
 
 (def d :kw)
 ;; no vars in cljs

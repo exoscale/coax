@@ -44,7 +44,7 @@ merged with the internal registry at coerce time.
 
 ```clj
 (s/def ::foo keyword?)
-(c/coerce ::foo "bar" {::c/idents {::foo (fn [x opts] (str "keyword:" x))}}) -> "keyword:bar"
+(c/coerce ::foo "bar" {:idents {::foo (fn [x opts] (str "keyword:" x))}}) -> "keyword:bar"
 ```
 
 Coercers are functions of 2 args, the value, and the options coerce
@@ -60,7 +60,7 @@ The typical example would be :
 ```clj
 (s/def ::foo (s/coll-of keyword?))
 ;; we'll namespace all keywords in that coll-of
-(c/coerce ::foo ["a" "b"] {::c/idents {`keyword? (fn [x opts] (keyword "foo" x)})}) -> [foo/a foo/b]
+(c/coerce ::foo ["a" "b"] {:idents {`keyword? (fn [x opts] (keyword "foo" x))}}) -> [foo/a foo/b]
 ```
 
 You can specify multiple overrides per coerce call.
@@ -72,7 +72,7 @@ easily for instance generate open-api definitions using these.
 
 ```clj
 (c/coerce ::foo (s/coll-of keyword?)
-          {::c/forms {`s/coll-of (fn [[_ spec]] (fn [x opts] (do-something-crazy-with-spec+the-value spec x opts)))}})
+          {:forms {`s/coll-of (fn [[_ spec]] (fn [x opts] (do-something-crazy-with-spec+the-value spec x opts)))}})
 ```
 
 ### Closed maps
