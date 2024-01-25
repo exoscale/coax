@@ -66,7 +66,7 @@ The typical example would be :
 You can specify multiple overrides per coerce call.
 
 Another thing we added is the ability to reach and change the
-behaviour of coercer generators via ::c/forms, essentially allowing
+behavior of coercer generators via :forms, essentially allowing
 you to support any spec form like inst-in, coll-of, .... You could
 easily for instance generate open-api definitions using these.
 
@@ -169,7 +169,7 @@ Learn by example:
 (c/coerce-structure {::number      "42"
                       ::not-defined "bla"
                       :sub          {::odd-number "45"}}
-                     {::c/idents {::not-defined `keyword?
+                     {:idents {::not-defined `keyword?
 ; => {::number      42
 ;     ::not-defined :bla
 ;     :sub          {::odd-number 45}}
@@ -182,7 +182,7 @@ Learn by example:
 ; Custom registered keywords always takes precedence over inference
 (c/coerce ::my-custom-attr "Z") ; => #user.SomeClass{:x "Z"}
 
-(c/coerce ::my-custom-attr "Z") {::c/idents {::my-custom-attr keyword}}) ; => :Z
+(c/coerce ::my-custom-attr "Z") {:idents {::my-custom-attr keyword}}) ; => :Z
 ```
 
 Examples from predicate to coerced value:
@@ -259,10 +259,10 @@ Examples from predicate to coerced value:
 (c/conform ::number "40")          ; 40
 
 ;; Throw on coerce structure
-(c/coerce-structure {::number "42"} {::c/op c/coerce!})
+(c/coerce-structure {::number "42"} {:op c/coerce!})
 
 ;; Conform on coerce structure
-(c/coerce-structure {::number "42"} {::c/op c/conform})
+(c/coerce-structure {::number "42"} {:op c/conform})
 ```
 
 ## Caching
