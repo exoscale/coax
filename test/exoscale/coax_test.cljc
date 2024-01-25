@@ -1,4 +1,4 @@
-(ns exoscale.coax-test
+(ns coax-test
   #?(:cljs (:require-macros [cljs.test :refer [deftest testing is are]]
                             [exoscale.coax :as sc]))
   (:require
@@ -86,7 +86,7 @@
     (is (= (sc/coerce ::infer-nilable nil) nil))
     (is (= (sc/coerce ::infer-nilable "") ""))
     (is (= (sc/coerce ::nilable-int "10") 10))
-    (is (= (sc/coerce ::nilable-int "10" {::sc/idents {`int? (fn [x _] (keyword x))}}) :10))
+    (is (= (sc/coerce ::nilable-int "10" {:idents {`int? (fn [x _] (keyword x))}}) :10))
     (is (= (sc/coerce ::nilable-pos-int "10") 10))
 
     (is (= (sc/coerce ::nilable-string nil) nil))
@@ -287,7 +287,7 @@
                                ::not-defined "bla"
                                :unqualified 12
                                :sub {::infer-int "42"}}
-                              {::sc/idents {::not-defined `keyword?}})
+                              {:idents {::not-defined `keyword?}})
          {::some-coercion 321
           ::not-defined :bla
           :unqualified 12
@@ -344,22 +344,22 @@
                        ::legs ["7" "7"]
                        :foo "bar"
                        :name "john"}
-                      {::sc/idents
+                      {:idents
                        {::head c/to-long
                         ::leg c/to-long
                         ::name c/to-keyword}}))
         "Coerce with option form")
-    (is (= 1 (sc/coerce `string? "1" {::sc/idents {`string? c/to-long}}))
+    (is (= 1 (sc/coerce `string? "1" {:idents {`string? c/to-long}}))
         "overrides works on qualified-idents")
 
     (is (= [1] (sc/coerce `(s/coll-of string?) ["1"]
-                          {::sc/idents {`string? c/to-long}}))
+                          {:idents {`string? c/to-long}}))
         "overrides works on qualified-idents, also with composites")
 
     (is (= ["foo" "bar" "baz"]
            (sc/coerce `vector?
                       "foo,bar,baz"
-                      {::sc/idents {`vector? (fn [x _] (str/split x #"[,]"))}}))
+                      {:idents {`vector? (fn [x _] (str/split x #"[,]"))}}))
         "override on real world use case with vector?")))
 
 (s/def ::foo int?)
@@ -380,13 +380,13 @@
   (s/def ::test-closed-keys (s/keys :req [::bar ::foo]))
   (is (= (sc/coerce ::test-closed-keys {::foo 1 ::bar 2 ::zzz 3})
          {::foo 1 ::bar "2" ::zzz "3"}))
-  (is (= (sc/coerce ::test-closed-keys {::foo 1 ::bar 2 ::baz 3} {:exoscale.coax/closed true})
+  (is (= (sc/coerce ::test-closed-keys {::foo 1 ::bar 2 ::baz 3} {:closed true})
          {::foo 1 ::bar "2"}))
 
   (s/def ::test-closed-keys2 (s/keys :req-un [::bar ::foo]))
   (is (= (sc/coerce ::test-closed-keys2 {:foo 1 :bar 2 :zzz 3})
          {:foo 1 :bar "2" :zzz 3}))
-  (is (= (sc/coerce ::test-closed-keys2 {:foo 1 :bar 2 :baz 3} {:exoscale.coax/closed true})
+  (is (= (sc/coerce ::test-closed-keys2 {:foo 1 :bar 2 :baz 3} {:closed true})
          {:foo 1 :bar "2"})))
 
 (s/def ::tuple (s/tuple ::foo ::bar int?))

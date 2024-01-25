@@ -271,7 +271,7 @@
   indicates a spec form likely it will return it's generated coercer
   from registry :exoscale.coax/forms, otherwise it returns the
   identity coercer"
-  [spec {:as opts :exoscale.coax/keys [enums]}]
+  [spec {:as opts :keys [enums]}]
   (let [spec-exp (si/spec-root spec)
         {:as reg :exoscale.coax/keys [idents]} (-> @registry-ref
                                                    (update :exoscale.coax/idents
