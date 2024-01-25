@@ -79,7 +79,7 @@ easily for instance generate open-api definitions using these.
 
 `coax` also allows to *close* maps specced with `s/keys`. 
 
-If you call `coerce` using the option `{:closed true ...}` if a value
+If you call `coerce` using the option `{:exoscale.coax/closed true ...}` if a value
 corresponding to a `s/keys` spec is encountered it will effectively remove all
 unknown keys from the returned value.
 
