@@ -45,7 +45,6 @@
                                 (keep #(when (keyword? %)
                                          [(keyword (name %)) %]))
                                 (flatten (concat req-un opt-un)))
-        _ (prn :keys-mapping-unns keys-mapping-unns)
         keys-mapping-ns (into {}
                               (map (juxt identity identity))
                               (flatten (concat req opt)))
@@ -155,7 +154,7 @@
     "takes enum value `x` and returns matching predicate to resolve
     coercer from registry"))
 
-(def ^:private registry-ref
+(defonce ^:private registry-ref
   (atom {:exoscale.coax/forms
          {`s/or gen-coerce-or
           `s/and gen-coerce-and
@@ -166,8 +165,8 @@
           `s/every-kv gen-coerce-map-of
           `s/tuple gen-coerce-tuple
           `s/multi-spec gen-coerce-multi-spec
-          `s/keys #'gen-coerce-keys
-          `s/merge #'gen-coerce-merge
+          `s/keys gen-coerce-keys
+          `s/merge gen-coerce-merge
           `s/inst-in (constantly c/to-inst)
           `s/int-in (constantly c/to-long)
           `s/double-in (constantly c/to-double)}
