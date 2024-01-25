@@ -127,14 +127,20 @@
 
 (defn gen-coerce-merge
   [[_ & spec-forms]]
-  (fn [x {:as opts :keys [closed]}]
+  (fn [x opts]
     (if (map? x)
-      (into (if closed {} x)
-            (map (fn [spec-form]
-                   (coerce spec-form
-                           x
-                           (assoc opts :closed true))))
-            spec-forms)
+      (reduce (fn [m spec-form]
+                ;; for every spec-form coerce to new value;
+                ;; we need to compare key by key what changed so that
+                ;; defaults do not overwrite coerced values
+                (into m
+                      (keep (fn [[spec v]]
+                              ;; new-val doesn't match default, keep it
+                              (when-not (= (get x spec) v)
+                                [spec v])))
+                      (coerce spec-form x (assoc opts :closed true))))
+              x
+              spec-forms)
       :exoscale.coax/invalid)))
 
 (defn gen-coerce-nilable
@@ -265,15 +271,11 @@
   indicates a spec form likely it will return it's generated coercer
   from registry :exoscale.coax/forms, otherwise it returns the
   identity coercer"
-  [spec {:as opts :exoscale.coax/keys [enums]}]
+  [spec {:as _opts :keys [idents forms enums]}]
   (let [spec-exp (si/spec-root spec)
         {:as reg :exoscale.coax/keys [idents]} (-> @registry-ref
-                                                   (update :exoscale.coax/idents
-                                                           merge
-                                                           (:exoscale.coax/idents opts))
-                                                   (update :exoscale.coax/forms
-                                                           merge
-                                                           (:exoscale.coax/forms opts))
+                                                   (update :exoscale.coax/idents merge idents)
+                                                   (update :exoscale.coax/forms merge forms)
                                                    (cond-> enums
                                                      (assoc :exoscale.coax/enums enums)))]
     (or (cond (qualified-ident? spec-exp)
@@ -292,7 +294,7 @@
   "Get the coercing function from a given key. First it tries to lookup
   the coercion on the registry, otherwise try to infer from the
   specs. In case nothing is found, identity function is returned."
-  [spec {:exoscale.coax/keys [idents] :as opts}]
+  [spec {:keys [idents] :as opts}]
   (or (when (qualified-keyword? spec)
         (si/registry-lookup (merge (:exoscale.coax/idents @registry-ref)
                                    idents)
@@ -315,7 +317,7 @@
 
 (defn coerce-fn
   [spec opts]
-  (if (:exoscale.coax/cache opts true)
+  (if (:cache opts true)
     (cached-coerce-fn spec opts)
     (coerce-fn* spec opts)))
 
@@ -415,7 +417,7 @@
 (defn coerce-structure
   "Recursively coerce map values on a structure."
   ([x] (coerce-structure x {}))
-  ([x {:exoscale.coax/keys [idents op]
+  ([x {:keys [idents op]
        :or {op coerce}
        :as opts}]
    (walk/prewalk (fn [x]
@@ -427,14 +429,3 @@
                                     [k (op (get idents k k) v opts)]
                                     [k v]))))))
                  x)))
-
-(s/def ::foo string?)
-(s/def ::bar string?)
-(s/def ::z string?)
-
-(s/def ::m (s/keys :req-un [::foo ::bar]))
-
-(coerce ::m {:foo "f" :bar "b" :baz "x"} {:closed true}) ; baz is not on the spec
-
-(coerce `(s/merge ::m (s/keys :req-un [::z]))
-        {:foo "f" :bar "b" :baz "x" :z "z"} {:closed true}) ; baz is not on the spec

@@ -44,7 +44,7 @@ merged with the internal registry at coerce time.
 
 ```clj
 (s/def ::foo keyword?)
-(c/coerce ::foo "bar" {::c/idents {::foo (fn [x opts] (str "keyword:" x))}}) -> "keyword:bar"
+(c/coerce ::foo "bar" {:idents {::foo (fn [x opts] (str "keyword:" x))}}) -> "keyword:bar"
 ```
 
 Coercers are functions of 2 args, the value, and the options coerce
@@ -60,19 +60,19 @@ The typical example would be :
 ```clj
 (s/def ::foo (s/coll-of keyword?))
 ;; we'll namespace all keywords in that coll-of
-(c/coerce ::foo ["a" "b"] {::c/idents {`keyword? (fn [x opts] (keyword "foo" x)})}) -> [foo/a foo/b]
+(c/coerce ::foo ["a" "b"] {:idents {`keyword? (fn [x opts] (keyword "foo" x))}}) -> [foo/a foo/b]
 ```
 
 You can specify multiple overrides per coerce call.
 
 Another thing we added is the ability to reach and change the
-behaviour of coercer generators via ::c/forms, essentially allowing
+behavior of coercer generators via :forms, essentially allowing
 you to support any spec form like inst-in, coll-of, .... You could
 easily for instance generate open-api definitions using these.
 
 ```clj
 (c/coerce ::foo (s/coll-of keyword?)
-          {::c/forms {`s/coll-of (fn [[_ spec]] (fn [x opts] (do-something-crazy-with-spec+the-value spec x opts)))}})
+          {:forms {`s/coll-of (fn [[_ spec]] (fn [x opts] (do-something-crazy-with-spec+the-value spec x opts)))}})
 ```
 
 ### Closed maps
@@ -169,7 +169,7 @@ Learn by example:
 (c/coerce-structure {::number      "42"
                       ::not-defined "bla"
                       :sub          {::odd-number "45"}}
-                     {::c/idents {::not-defined `keyword?
+                     {:idents {::not-defined `keyword?
 ; => {::number      42
 ;     ::not-defined :bla
 ;     :sub          {::odd-number 45}}
@@ -182,7 +182,7 @@ Learn by example:
 ; Custom registered keywords always takes precedence over inference
 (c/coerce ::my-custom-attr "Z") ; => #user.SomeClass{:x "Z"}
 
-(c/coerce ::my-custom-attr "Z") {::c/idents {::my-custom-attr keyword}}) ; => :Z
+(c/coerce ::my-custom-attr "Z") {:idents {::my-custom-attr keyword}}) ; => :Z
 ```
 
 Examples from predicate to coerced value:
@@ -259,10 +259,10 @@ Examples from predicate to coerced value:
 (c/conform ::number "40")          ; 40
 
 ;; Throw on coerce structure
-(c/coerce-structure {::number "42"} {::c/op c/coerce!})
+(c/coerce-structure {::number "42"} {:op c/coerce!})
 
 ;; Conform on coerce structure
-(c/coerce-structure {::number "42"} {::c/op c/conform})
+(c/coerce-structure {::number "42"} {:op c/conform})
 ```
 
 ## Caching
@@ -278,11 +278,10 @@ about this, for instance when you define static coercers via
 during development you might need to be aware of the existence of that
 cache (ex if you defined a bugged coercer, or while doing REPL dev).
 
-In any case you can turn off the cache by passing
-`:exoscale.coax/cache false` to the options of
-coerce/conform/coerce-structure, alternatively you can manually fiddle
-with the cache under `exoscale.coax/coercer-cache`, for instance via
-`(reset! exoscale.coax/coercer-cache {})`.
+In any case you can turn off the cache by passing `:cache false` to the options
+of coerce/conform/coerce-structure, alternatively you can manually fiddle with
+the cache under `exoscale.coax/coercer-cache`, for instance via `(reset!
+exoscale.coax/coercer-cache {})`.
 
 ## License
 
