@@ -49,7 +49,7 @@
                               (map (juxt identity identity))
                               (flatten (concat req opt)))
         keys-mapping (merge keys-mapping-unns keys-mapping-ns)]
-    (fn [x {:as opts :exoscale.coax/keys [closed]}]
+    (fn [x {:as opts :keys [closed]}]
       (if (map? x)
         (reduce-kv (fn [m k v]
                      (let [s-from-mapping (keys-mapping k)
@@ -138,7 +138,7 @@
                               ;; new-val doesn't match default, keep it
                               (when-not (= (get x spec) v)
                                 [spec v])))
-                      (coerce spec-form x (assoc opts :exoscale.coax/closed true))))
+                      (coerce spec-form x (assoc opts :closed true))))
               x
               spec-forms)
       :exoscale.coax/invalid)))
@@ -276,10 +276,10 @@
         {:as reg :exoscale.coax/keys [idents]} (-> @registry-ref
                                                    (update :exoscale.coax/idents
                                                            merge
-                                                           (:exoscale.coax/idents opts))
+                                                           (:idents opts))
                                                    (update :exoscale.coax/forms
                                                            merge
-                                                           (:exoscale.coax/forms opts))
+                                                           (:forms opts))
                                                    (cond-> enums
                                                      (assoc :exoscale.coax/enums enums)))]
     (or (cond (qualified-ident? spec-exp)
@@ -298,7 +298,7 @@
   "Get the coercing function from a given key. First it tries to lookup
   the coercion on the registry, otherwise try to infer from the
   specs. In case nothing is found, identity function is returned."
-  [spec {:exoscale.coax/keys [idents] :as opts}]
+  [spec {:keys [idents] :as opts}]
   (or (when (qualified-keyword? spec)
         (si/registry-lookup (merge (:exoscale.coax/idents @registry-ref)
                                    idents)
@@ -421,7 +421,7 @@
 (defn coerce-structure
   "Recursively coerce map values on a structure."
   ([x] (coerce-structure x {}))
-  ([x {:exoscale.coax/keys [idents op]
+  ([x {:keys [idents op]
        :or {op coerce}
        :as opts}]
    (walk/prewalk (fn [x]
