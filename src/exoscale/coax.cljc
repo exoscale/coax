@@ -129,9 +129,9 @@
   [[_ & spec-forms]]
   (fn [x {:as opts :keys [closed]}]
     (if (map? x)
-      (into {}
+      (into (cond-> x closed empty)
             (map (fn [spec-form]
-                   (coerce spec-form x (assoc opts :closed closed))))
+                   (coerce spec-form x (assoc opts :closed true))))
             spec-forms)
       :exoscale.coax/invalid)))
 
