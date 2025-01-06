@@ -418,8 +418,7 @@
   (s/def ::merge2 (s/merge (s/keys :req [::foo])
                            ::unqualified))
 
-  (is (= {::foo 1 :bar "1" :c {:a 2}
-          :foo 1}
+  (is (= {::foo 1 :bar "1" :c {:a 2} :foo 1}
          (sc/coerce ::merge2 {::foo "1" :foo "1" :bar "1" :c {:a 2}}))
       "Leave out ok vals")
 
