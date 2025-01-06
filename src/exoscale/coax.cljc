@@ -127,20 +127,23 @@
 
 (defn gen-coerce-merge
   [[_ & spec-forms]]
-  (fn [x opts]
+  (fn [x {:as opts :keys [closed]}]
     (if (map? x)
-      (reduce (fn [m spec-form]
-                ;; for every spec-form coerce to new value;
-                ;; we need to compare key by key what changed so that
-                ;; defaults do not overwrite coerced values
-                (into m
-                      (keep (fn [[spec v]]
-                              ;; new-val doesn't match default, keep it
-                              (when-not (= (get x spec) v)
-                                [spec v])))
-                      (coerce spec-form x (assoc opts :closed true))))
-              x
+      (if closed
+        (into {}
+              (map (fn [spec-form]
+                     (coerce spec-form x (assoc opts :closed true))))
               spec-forms)
+        ;; not closed, we also have to ensure we don't overwrite values with
+        ;; more loose specs towards the end of the args (ex `any?`
+        (reduce (fn [m spec-form]
+                  (into m
+                        (remove (fn [[k v]]
+                                  (= (get x k) v)))
+                        (coerce spec-form x (assoc opts :closed true))))
+                x
+                spec-forms))
+
       :exoscale.coax/invalid)))
 
 (defn gen-coerce-nilable
