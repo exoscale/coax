@@ -420,6 +420,11 @@
          (sc/coerce ::merge2 {::foo "1" :foo "1" :bar "1" :c {:a 2}}))
       "Leave out ok vals")
 
+  (is (= {::foo 1 :bar "1" :foo 1}
+         (sc/coerce ::merge2 {::foo "1" :foo "1" :bar "1" :c {:a 2}}
+                    {:closed true}))
+      "Remove extras")
+
   (is (= "garbage" (sc/coerce ::merge "garbage"))
       "garbage is passthrough")
 
