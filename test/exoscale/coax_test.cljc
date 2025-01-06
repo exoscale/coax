@@ -373,6 +373,9 @@
 
 (deftest test-or-conditions-in-unqualified-keys
   (is (= (sc/coerce ::unqualified {:foo "1" :bar "hi"})
+         {:foo 1 :bar "hi"}))
+
+  (is (= (sc/coerce ::unqualified {:foo "1" :bar "hi"} {:closed true})
          {:foo 1 :bar "hi"})))
 
 (deftest test-closed-keys
@@ -402,7 +405,7 @@
                           any?))
   (is (= {:foo 1 :bar "1" :c {:a 2}}
          (sc/coerce ::merge {:foo "1" :bar 1 :c {:a 2}}))
-      "Coerce new vals appropriately")
+      "Coerce new vals appropriately 1")
 
   (is (= {:foo 1 :bar "1" :c {:a 2}}
          (sc/coerce ::merge {:foo 1 :bar "1" :c {:a 2}}))
@@ -410,7 +413,7 @@
 
   (is (= {:foo 1 :bar "1" :c {:a 2}}
          (sc/coerce ::merge {:foo "1" :bar 1 :c {:a 2}}))
-      "Coerce new vals appropriately")
+      "Coerce new vals appropriately 2")
 
   (s/def ::merge2 (s/merge (s/keys :req [::foo])
                            ::unqualified))

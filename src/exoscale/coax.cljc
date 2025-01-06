@@ -129,10 +129,21 @@
   [[_ & spec-forms]]
   (fn [x {:as opts :keys [closed]}]
     (if (map? x)
-      (into (cond-> x closed empty)
-            (map (fn [spec-form]
-                   (coerce spec-form x (assoc opts :closed true))))
-            spec-forms)
+      (if closed
+        (into {}
+              (map (fn [spec-form]
+                     (coerce spec-form x (assoc opts :closed true))))
+              spec-forms)
+        ;; not closed, we also have to ensure we don't overwrite values with
+        ;; more loose specs towards the end of the args (ex `any?`
+        (reduce (fn [m spec-form]
+                  (into m
+                        (remove (fn [[k v]]
+                                  (= (get x k) v)))
+                        (coerce spec-form x (assoc opts :closed true))))
+                x
+                spec-forms))
+
       :exoscale.coax/invalid)))
 
 (defn gen-coerce-nilable
