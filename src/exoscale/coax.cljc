@@ -21,19 +21,22 @@
   (reduce-kv (fn [r k _] (assoc r k nil)) r r))
 
 (defn gen-coerce-or [[_ & pairs]]
-  (fn [x opts]
-    (let [xs (into []
-                   (comp (partition-all 2)
-                         (map #(coerce* (second %) x opts))
-                         (remove #{:exoscale.coax/invalid}))
-                   pairs)]
-      ;; return first val that's either matching input or not invalid
-      (or (reduce (fn [_ x']
-                    (when (= x x')
-                      (reduced x)))
-                  nil
-                  xs)
-          (first xs)))))
+  (fn [x {:as opts :keys [coerce-or-match-first]}]
+    (let [xs (sequence
+              (comp (partition-all 2)
+                    (map #(coerce* (second %) x opts))
+                    (remove #{:exoscale.coax/invalid}))
+              pairs)]
+      (if coerce-or-match-first
+        ;; match first value that was coerced
+        (first xs)
+        ;; return first val that's either matching input or not invalid
+        (or (reduce (fn [_ x']
+                      (when (= x x')
+                        (reduced x)))
+                    nil
+                    xs)
+            (first xs))))))
 
 (defn gen-coerce-and [[_ & [spec]]]
   (fn [x opts]

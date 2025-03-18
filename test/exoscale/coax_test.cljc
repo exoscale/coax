@@ -378,6 +378,13 @@
   (is (= (sc/coerce ::unqualified {:foo "1" :bar "hi"} {:closed true})
          {:foo 1 :bar "hi"})))
 
+(deftest test-or-match-first
+  (s/def ::test-or-match-first (s/or :uuid uuid? :str string? :char (s/coll-of char?)))
+  (is (= (sc/coerce ::test-or-match-first "00000000-0000-0000-0000-00000")
+         "00000000-0000-0000-0000-00000"))
+  (is (= (sc/coerce ::test-or-match-first "00000000-0000-0000-0000-00000" {:coerce-or-match-first true})
+         #uuid "00000000-0000-0000-0000-00000")))
+
 (deftest test-closed-keys
   (s/def ::zzz string?)
   (s/def ::test-closed-keys (s/keys :req [::bar ::foo]))

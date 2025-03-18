@@ -283,6 +283,21 @@ of coerce/conform/coerce-structure, alternatively you can manually fiddle with
 the cache under `exoscale.coax/coercer-cache`, for instance via `(reset!
 exoscale.coax/coercer-cache {})`.
 
+## Options
+
+* `:coerce-or-match-first`: By default coercion of s/or will either the first
+value that **matches the input** and is not considered *coercion invalid*.  You
+can however change this behavior by setting this option to true by making
+coerce-or return the **first** coerced value instead. This allows you to handle
+cases where there is ambiguity (ex s/or with string? and uuid? with a valid uuid
+string).
+
+* `:cache`: See Caching
+
+* `:idents`: See Overriding
+
+* `:forms`: See Overriding
+
 ## License
 
 * License Copyright © 2020 Exoscale - Distributed under ISC License
