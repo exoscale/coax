@@ -16,7 +16,7 @@
                                  :sign-releases? false
                                  :repository "clojars"}
 
- :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+ :deps {org.clojure/clojure {:mvn/version "1.12.0"}
         net.cgrand/macrovich {:mvn/version "0.2.1"}}
 
  :aliases

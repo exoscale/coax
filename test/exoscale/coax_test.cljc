@@ -380,10 +380,10 @@
 
 (deftest test-or-match-first
   (s/def ::test-or-match-first (s/or :uuid uuid? :str string? :char (s/coll-of char?)))
-  (is (= (sc/coerce ::test-or-match-first "00000000-0000-0000-0000-00000")
-         "00000000-0000-0000-0000-00000"))
-  (is (= (sc/coerce ::test-or-match-first "00000000-0000-0000-0000-00000" {:coerce-or-match-first true})
-         #uuid "00000000-0000-0000-0000-00000")))
+  (is (= (sc/coerce ::test-or-match-first "00000000-0000-0000-0000-000000000000")
+         "00000000-0000-0000-0000-000000000000"))
+  (is (= (sc/coerce ::test-or-match-first "00000000-0000-0000-0000-000000000000" {:coerce-or-match-first true})
+         #uuid "00000000-0000-0000-0000-000000000000")))
 
 (deftest test-closed-keys
   (s/def ::zzz string?)
