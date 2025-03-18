@@ -294,9 +294,11 @@ string).
 
 * `:cache`: See Caching
 
-* `:idents`: See Overriding
+* `:idents`: See Overrides
 
-* `:forms`: See Overriding
+* `:forms`: See Overrides
+
+* `:closed`: See Closed maps
 
 ## License
 
