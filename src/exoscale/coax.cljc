@@ -60,9 +60,9 @@
                        (cond
 
                          ;; if throw-on-extra-keys
-                         (and throw-on-extra-keys (not s-from-mapping))
-                         (throw (ex-info "Extra key found on strict map"
-                                         {:exoscale.ex/type :exoscale.coax/extra-key-error
+                         (and closed-strict (not s-from-mapping))
+                         (throw (ex-info "Extra key found on closed map"
+                                         {:exoscale.ex/type :exoscale.coax/closed-strict
                                           :key k :val v}))
                          ;; if closed and not in mapping dissoc
                          (and closed (not s-from-mapping))
