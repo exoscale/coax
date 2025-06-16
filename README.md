@@ -104,6 +104,13 @@ unknown keys from the returned value.
 -> {:foo "f" :bar "b" :z "z"}
 ```
 
+
+#### closed-strict 
+
+`coax` also has a `:close-strict` options for maps specced with `s/keys`. 
+It behaves exactly the same way as `:close` with the difference that it throws
+on the first unknown key encountered.
+
 ## Documentation
 
 [![cljdocbadge](https://cljdoc.xyz/badge/exoscale/coax)](https://cljdoc.org/d/exoscale/coax/CURRENT/api/exoscale.coax)
