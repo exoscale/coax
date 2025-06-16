@@ -399,8 +399,9 @@
   (is (= (sc/coerce ::test-closed-keys2 {:foo 1 :bar 2 :baz 3} {:closed true})
          {:foo 1 :bar "2"}))
   (is (thrown-with-msg? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
-                        #"Extra key :exoscale.coax-test/baz found on sealed map"
-                        (= (sc/coerce ::test-closed-keys {::foo 1 ::bar 2 ::baz 3} {:sealed true})
+                        #"Found extra keys on sealed map - :exoscale.coax-test/baz"
+                        (= (sc/coerce ::test-closed-keys {::foo 1 ::bar 2 ::baz 3}
+                                      {:sealed true})
                            {::foo 1 ::bar "2"}))))
 
 (s/def ::tuple (s/tuple ::foo ::bar int?))
@@ -437,6 +438,18 @@
          (sc/coerce ::merge2 {::foo "1" :foo "1" :bar "1" :c {:a 2}}
                     {:closed true}))
       "Remove extras")
+
+  (is (= {::foo 1 :foo 1 :bar ""}
+         (sc/coerce ::merge2 {::foo "1" :foo "1" :bar ""}
+                    {:sealed true}))
+      "dont' Throw on extra /w sealed when allowed in extra maps")
+
+  (is (thrown-with-msg?
+       #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+       #"Found extra keys on sealed map"
+       (sc/coerce ::merge2 {::foo "1" :foo "1" :bark 2}
+                  {:sealed true}))
+      "dont' Throw on extra /w sealed when allowed in extra maps")
 
   (is (= "garbage" (sc/coerce ::merge "garbage"))
       "garbage is passthrough")

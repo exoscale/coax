@@ -1,15 +1,17 @@
 (ns exoscale.coax
   (:refer-clojure :exclude [def])
   (:require #?(:clj [net.cgrand.macrovich :as macros])
+            [clojure.set :as set]
             [clojure.spec.alpha :as s]
+            [clojure.string :as str]
             [clojure.walk :as walk]
             [exoscale.coax.coercer :as c]
             [exoscale.coax.inspect :as si])
   #?(:clj
      (:import (clojure.lang Keyword)
-              (java.util Date UUID)
+              (java.net URI)
               (java.time Instant)
-              (java.net URI)))
+              (java.util Date UUID)))
   #?(:cljs
      (:require-macros [net.cgrand.macrovich :as macros]
                       [exoscale.coax :refer [def]])))
@@ -42,6 +44,17 @@
   (fn [x opts]
     (coerce spec x opts)))
 
+(defn- ensure-no-extra-keys
+  [map-coerced map-in]
+  (when-let [extra-keys (not-empty
+                         (set/difference
+                          (set (keys map-in))
+                          (set (keys map-coerced))))]
+    (throw (ex-info (str "Found extra keys on sealed map - "
+                         (str/join ", " extra-keys))
+                    {:extra-keys extra-keys})))
+  map-coerced)
+
 (defn gen-coerce-keys
   [[_ & {:as _opts :keys [req-un opt-un req opt]}]]
   (let [keys-mapping-unns (into {}
@@ -52,32 +65,61 @@
                               (map (juxt identity identity))
                               (flatten (concat req opt)))
         keys-mapping (merge keys-mapping-unns keys-mapping-ns)]
-    (fn [x {:as opts :keys [closed sealed]}]
+    (fn [x {:as opts
+            :keys [closed sealed]
+            ::keys [merge-closed]}]
       (if (map? x)
-        (reduce-kv (fn [m k v]
-                     (let [s-from-mapping (keys-mapping k)
-                           s (or s-from-mapping k)
-                           not-in-mapping (not s-from-mapping)]
-                       (cond
-                         ;; if closed-strict and this key is unknown
-                         (and not-in-mapping sealed)
-                         (throw (ex-info (str "Extra key " k " found on sealed map")
-                                         {:type :exoscale.coax/unknown-sealed-map-key
-                                          :key k :val v}))
-                         ;; if closed and not in mapping then just dissoc
-                         (and not-in-mapping closed)
-                         (dissoc m k)
-                         ;; registered spec -> coerce
-                         (qualified-ident? s)
-                         (assoc m k
-                                (coerce s
-                                        v
-                                        opts))
-                         ;; passthrough
-                         :else m)))
-                   x
-                   x)
+        (cond-> (reduce-kv
+                 (fn [m k v]
+                   (let [s-from-mapping (keys-mapping k)
+                         s (or s-from-mapping k)
+                         not-in-mapping (not s-from-mapping)]
+                     (cond
+                       ;; if closed and not in mapping then just dissoc
+                       (and not-in-mapping (or closed sealed merge-closed))
+                       (dissoc m k)
+
+                       ;; registered spec -> coerce
+                       (qualified-ident? s)
+                       (assoc m k
+                              (coerce s
+                                      v
+                                      (dissoc opts ::merge-closed)))
+                       ;; passthrough
+                       :else m)))
+                 x
+                 x)
+          ;; if map is sealed and it's not part of a s/merge we can check at
+          ;; this level
+          (and sealed (not merge-closed))
+          (ensure-no-extra-keys x))
         :exoscale.coax/invalid))))
+
+(defn gen-coerce-merge
+  [[_ & spec-forms]]
+  (fn [x {:as opts :keys [closed sealed]}]
+    (if (map? x)
+      (cond
+        (or closed sealed)
+        (cond-> (into {}
+                      (map (fn [spec-form]
+                             (coerce spec-form x (assoc opts ::merge-closed true))))
+                      spec-forms)
+          sealed
+          (ensure-no-extra-keys x))
+
+        :else
+        ;; not closed, we also have to ensure we don't overwrite values with
+        ;; more loose specs towards the end of the args (ex `any?`
+        (reduce (fn [m spec-form]
+                  (into m
+                        (remove (fn [[k v]]
+                                  (= (get x k) v)))
+                        (coerce spec-form x (assoc opts ::merge-closed true))))
+                x
+                spec-forms))
+
+      :exoscale.coax/invalid)))
 
 (defn gen-coerce-coll-of [[_ spec & {:as _opts :keys [kind]}]]
   (fn [x opts]
@@ -133,27 +175,6 @@
                 x
                 opts)
         :exoscale.coax/invalid))))
-
-(defn gen-coerce-merge
-  [[_ & spec-forms]]
-  (fn [x {:as opts :keys [closed]}]
-    (if (map? x)
-      (if closed
-        (into {}
-              (map (fn [spec-form]
-                     (coerce spec-form x (assoc opts :closed true))))
-              spec-forms)
-        ;; not closed, we also have to ensure we don't overwrite values with
-        ;; more loose specs towards the end of the args (ex `any?`
-        (reduce (fn [m spec-form]
-                  (into m
-                        (remove (fn [[k v]]
-                                  (= (get x k) v)))
-                        (coerce spec-form x (assoc opts :closed true))))
-                x
-                spec-forms))
-
-      :exoscale.coax/invalid)))
 
 (defn gen-coerce-nilable
   [[_ spec]]
