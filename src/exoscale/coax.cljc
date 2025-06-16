@@ -52,20 +52,21 @@
                               (map (juxt identity identity))
                               (flatten (concat req opt)))
         keys-mapping (merge keys-mapping-unns keys-mapping-ns)]
-    (fn [x {:as opts :keys [closed throw-on-extra-keys]}]
+    (fn [x {:as opts :keys [closed closed-strict]}]
       (if (map? x)
         (reduce-kv (fn [m k v]
                      (let [s-from-mapping (keys-mapping k)
-                           s (or s-from-mapping k)]
+                           s (or s-from-mapping k)
+                           not-in-mapping (not s-from-mapping)]
                        (cond
 
                          ;; if throw-on-extra-keys
-                         (and closed-strict (not s-from-mapping))
-                         (throw (ex-info "Extra key found on closed map"
+                         (and not-in-mapping closed-strict)
+                         (throw (ex-info (str "Extra key " k " found on closed map")
                                          {:exoscale.ex/type :exoscale.coax/closed-strict
                                           :key k :val v}))
                          ;; if closed and not in mapping dissoc
-                         (and closed (not s-from-mapping))
+                         (and not-in-mapping closed)
                          (dissoc m k)
                          ;; registered spec -> coerce
                          (qualified-ident? s)
