@@ -52,12 +52,18 @@
                               (map (juxt identity identity))
                               (flatten (concat req opt)))
         keys-mapping (merge keys-mapping-unns keys-mapping-ns)]
-    (fn [x {:as opts :keys [closed]}]
+    (fn [x {:as opts :keys [closed throw-on-extra-keys]}]
       (if (map? x)
         (reduce-kv (fn [m k v]
                      (let [s-from-mapping (keys-mapping k)
                            s (or s-from-mapping k)]
                        (cond
+
+                         ;; if throw-on-extra-keys
+                         (and throw-on-extra-keys (not s-from-mapping))
+                         (throw (ex-info "Extra key found on strict map"
+                                         {:exoscale.ex/type :exoscale.coax/extra-key-error
+                                          :key k :val v}))
                          ;; if closed and not in mapping dissoc
                          (and closed (not s-from-mapping))
                          (dissoc m k)
