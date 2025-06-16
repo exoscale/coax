@@ -105,11 +105,11 @@ unknown keys from the returned value.
 ```
 
 
-#### closed-strict 
+#### Sealed maps
 
-`coax` also has a `:close-strict` options for maps specced with `s/keys`. 
-It behaves exactly the same way as `:close` with the difference that it throws
-on the first unknown key encountered.
+`coax` also has a `:sealed` options for maps specced with `s/keys`.  It behaves
+similarly to `:close` with the difference that it throws on the first unknown
+key encountered.
 
 ## Documentation
 
@@ -306,6 +306,8 @@ string).
 * `:forms`: See Overrides
 
 * `:closed`: See Closed maps
+
+* `:sealed`: See Sealed maps
 
 ## License
 

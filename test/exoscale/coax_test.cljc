@@ -399,8 +399,8 @@
   (is (= (sc/coerce ::test-closed-keys2 {:foo 1 :bar 2 :baz 3} {:closed true})
          {:foo 1 :bar "2"}))
   (is (thrown-with-msg? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
-                        #"Extra key :exoscale.coax-test/baz found on closed map"
-                        (= (sc/coerce ::test-closed-keys {::foo 1 ::bar 2 ::baz 3} {:closed-strict true})
+                        #"Extra key :exoscale.coax-test/baz found on sealed map"
+                        (= (sc/coerce ::test-closed-keys {::foo 1 ::bar 2 ::baz 3} {:sealed true})
                            {::foo 1 ::bar "2"}))))
 
 (s/def ::tuple (s/tuple ::foo ::bar int?))
