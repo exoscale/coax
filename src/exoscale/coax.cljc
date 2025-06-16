@@ -62,7 +62,7 @@
                          ;; if closed-strict and this key is unknown
                          (and not-in-mapping closed-strict)
                          (throw (ex-info (str "Extra key " k " found on closed map")
-                                         {:exoscale.ex/type :exoscale.coax/closed-strict
+                                         {:type :exoscale.coax/closed-strict
                                           :key k :val v}))
                          ;; if closed and not in mapping then just dissoc
                          (and not-in-mapping closed)
