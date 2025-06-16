@@ -59,8 +59,7 @@
                            s (or s-from-mapping k)
                            not-in-mapping (not s-from-mapping)]
                        (cond
-
-                         ;; if throw-on-extra-keys
+                         ;; if closed-strict and this key is unknown
                          (and not-in-mapping closed-strict)
                          (throw (ex-info (str "Extra key " k " found on closed map")
                                          {:exoscale.ex/type :exoscale.coax/closed-strict
