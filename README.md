@@ -104,6 +104,13 @@ unknown keys from the returned value.
 -> {:foo "f" :bar "b" :z "z"}
 ```
 
+
+#### Sealed maps
+
+`coax` also has a `:sealed` options for maps specced with `s/keys`.  It behaves
+similarly to `:close` with the difference that it throws on the first unknown
+key encountered.
+
 ## Documentation
 
 [![cljdocbadge](https://cljdoc.xyz/badge/exoscale/coax)](https://cljdoc.org/d/exoscale/coax/CURRENT/api/exoscale.coax)
@@ -299,6 +306,8 @@ string).
 * `:forms`: See Overrides
 
 * `:closed`: See Closed maps
+
+* `:sealed`: See Sealed maps
 
 ## License
 
