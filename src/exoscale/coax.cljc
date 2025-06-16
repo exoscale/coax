@@ -65,7 +65,7 @@
                          (throw (ex-info (str "Extra key " k " found on closed map")
                                          {:exoscale.ex/type :exoscale.coax/closed-strict
                                           :key k :val v}))
-                         ;; if closed and not in mapping dissoc
+                         ;; if closed and not in mapping then just dissoc
                          (and not-in-mapping closed)
                          (dissoc m k)
                          ;; registered spec -> coerce
