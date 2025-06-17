@@ -22,16 +22,21 @@
   [r]
   (reduce-kv (fn [r k _] (assoc r k nil)) r r))
 
+(defn- check-extra-keys?
+  [{:as _opts :keys [sealed] ::keys [soft-sealed]}]
+  (and sealed (not soft-sealed)))
+
 (defn- ensure-no-extra-keys
-  [map-coerced map-in]
-  (when-let [extra-keys (not-empty
-                         (set/difference
-                          (set (keys map-in))
-                          (set (keys map-coerced))))]
-    (throw (ex-info (str "Found extra keys on sealed map - "
-                         (str/join ", " extra-keys))
-                    {:extra-keys extra-keys
-                     :type :exoscale.coax/extra-keys-found})))
+  [map-coerced map-in opts]
+  (when (check-extra-keys? opts)
+    (when-let [extra-keys (not-empty
+                           (set/difference
+                            (set (keys map-in))
+                            (set (keys map-coerced))))]
+      (throw (ex-info (str "Found extra keys on sealed map - "
+                           (str/join ", " extra-keys))
+                      {:extra-keys extra-keys
+                       :type :exoscale.coax/extra-keys-found}))))
   map-coerced)
 
 (defn gen-coerce-or [[_ & pairs]]
@@ -54,8 +59,8 @@
                               xs)
                       (first xs)))]
         (cond-> ret
-          (and sealed (map? ret))
-          (ensure-no-extra-keys x))))))
+          (map? ret)
+          (ensure-no-extra-keys x opts))))))
 
 (defn gen-coerce-and [[_ & [spec]]]
   (fn [x opts]
@@ -75,49 +80,46 @@
             :keys [closed sealed]
             ::keys [soft-sealed]}]
       (if (map? x)
-        (cond-> (reduce-kv
-                 (fn [m k v]
-                   (let [s-from-mapping (keys-mapping k)
-                         s (or s-from-mapping k)
-                         not-in-mapping (not s-from-mapping)]
-                     (cond
+        (-> (reduce-kv
+             (fn [m k v]
+               (let [s-from-mapping (keys-mapping k)
+                     s (or s-from-mapping k)
+                     not-in-mapping (not s-from-mapping)]
+                 (cond
                        ;; if closed and not in mapping then just dissoc
-                       (and not-in-mapping
-                            (or closed
-                                sealed
-                                soft-sealed))
-                       (dissoc m k)
+                   (and not-in-mapping
+                        (or closed
+                            sealed
+                            soft-sealed))
+                   (dissoc m k)
 
                        ;; registered spec -> coerce
-                       (qualified-ident? s)
-                       (assoc m k
-                              (coerce s
-                                      v
-                                      (dissoc opts ::soft-sealed)))
+                   (qualified-ident? s)
+                   (assoc m k
+                          (coerce s
+                                  v
+                                  (dissoc opts ::soft-sealed)))
                        ;; passthrough
-                       :else m)))
-                 x
-                 x)
+                   :else m)))
+             x
+             x)
           ;; if map is sealed and it's not part of a s/merge we can check at
           ;; this level
-          (and sealed (not soft-sealed))
-          (ensure-no-extra-keys x))
+            (ensure-no-extra-keys x opts))
         :exoscale.coax/invalid))))
 
 (defn gen-coerce-merge
   [[_ & spec-forms]]
   (fn [x {:as opts
-          :keys [closed sealed]
-          ::keys [soft-sealed]}]
+          :keys [closed sealed]}]
     (if (map? x)
       (cond
         (or closed sealed)
-        (cond-> (into {}
-                      (map (fn [spec-form]
-                             (coerce spec-form x (assoc opts ::soft-sealed true))))
-                      spec-forms)
-          (and sealed (not soft-sealed))
-          (ensure-no-extra-keys x))
+        (-> (into {}
+                  (map (fn [spec-form]
+                         (coerce spec-form x (assoc opts ::soft-sealed true))))
+                  spec-forms)
+            (ensure-no-extra-keys x opts))
 
         :else
         ;; not closed, we also have to ensure we don't overwrite values with
@@ -182,11 +184,10 @@
                         .-mmvar))]
     (fn [x {:as opts :keys [sealed]}]
       (if (map? x)
-        (cond-> (coerce (s/form (f x))
-                        x
-                        (assoc opts ::soft-sealed sealed))
-          sealed
-          (ensure-no-extra-keys x))
+        (-> (coerce (s/form (f x))
+                    x
+                    (assoc opts ::soft-sealed sealed))
+            (ensure-no-extra-keys x opts))
         :exoscale.coax/invalid))))
 
 (defn gen-coerce-nilable
