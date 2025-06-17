@@ -402,7 +402,28 @@
                         #"Found extra keys on sealed map - :exoscale.coax-test/baz"
                         (= (sc/coerce ::test-closed-keys {::foo 1 ::bar 2 ::baz 3}
                                       {:sealed true})
-                           {::foo 1 ::bar "2"}))))
+                           {::foo 1 ::bar "2"})))
+
+  (s/def ::test-sealed-or (s/or :a ::test-closed-keys
+                                :b ::test-closed-keys2
+                                :c ::test-closed-keys))
+
+  (is (= {::foo 1 ::bar "2"}
+         (sc/coerce ::test-sealed-or
+                    {::foo 1 ::bar 2}
+                    {:sealed true})))
+
+  (is (thrown-with-msg?
+       #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+       #"Found extra keys on sealed map - :exoscale.coax-test/zzz"
+       (sc/coerce ::test-sealed-or
+                  {::foo 1 ::bar 2 ::zzz 3}
+                  {:sealed true})))
+
+  (is (= {:foo 1 :bar "2"}
+         (sc/coerce ::test-sealed-or
+                    {:foo 1 :bar "2"}
+                    {:sealed true}))))
 
 (s/def ::tuple (s/tuple ::foo ::bar int?))
 
@@ -475,7 +496,18 @@
   (is (= {:foo 1} (sc/coerce ::multi {:foo 1})))
   (is (= {:foo 1} (sc/coerce ::multi {:foo "1"})))
   (is (= {:foo 1 :d :kw} (sc/coerce ::multi {:d :kw :foo "1"})))
-  (is (= "garbage" (sc/coerce ::multi "garbage"))))
+  (is (= "garbage" (sc/coerce ::multi "garbage")))
+  (is (= {:foo 1} (sc/coerce ::multi {:foo "1"} {:sealed true})))
+  (is (thrown-with-msg? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+                        #"Found extra keys on sealed map - :b"
+                        (sc/coerce ::multi {:foo "1" :b 2} {:sealed true})))
+  (s/def :s-or-with-multi/baz (s/keys :req [::baz]))
+  (s/def :s-or-with-multi/or (s/or :a ::multi
+                                   :b :s-or-with-multi/baz))
+  (is (= {:foo 1}
+         (sc/coerce :s-or-with-multi/or
+                    {:foo "1"}
+                    {:sealed true}))))
 
 (deftest test-gigo
   (is (= (sc/coerce `(some-unknown-form string?) 1) 1))
