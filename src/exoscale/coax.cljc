@@ -180,11 +180,13 @@
                         (filter #(= spec-expr (s/form %)))
                         first
                         .-mmvar))]
-    (fn [x opts]
+    (fn [x {:as opts :keys [sealed]}]
       (if (map? x)
-        (coerce (s/form (f x))
-                x
-                opts)
+        (cond-> (coerce (s/form (f x))
+                        x
+                        (assoc opts ::soft-sealed sealed))
+          sealed
+          (ensure-no-extra-keys x))
         :exoscale.coax/invalid))))
 
 (defn gen-coerce-nilable
