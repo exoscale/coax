@@ -1,0 +1,6 @@
+{:deps {exoscale/coax {:local/root "."}}
+ :tasks
+ {test:clj {:doc "Runs tests with JVM Clojure"
+            :task (clojure "-X:test-bb")}
+  test:cljs {:doc "Runs tests with ClojureScript"
+             :task (clojure "-M:test-bb-cljs")}}}
