@@ -2,6 +2,8 @@
   #?(:cljs (:require-macros [cljs.test :refer [deftest testing is are]]
                             [exoscale.coax :as sc]))
   (:require
+   #?(:bb [clojure.test :refer [deftest testing is are]])
+   #?(:bb [clojure.test.check.clojure-test :refer [defspec]])
    #?(:clj [clojure.test :refer [deftest testing is are]])
    #?(:clj [clojure.test.check.clojure-test :refer [defspec]])
    #?(:cljs [clojure.test.check.clojure-test :refer-macros [defspec]])
