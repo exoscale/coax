@@ -27,10 +27,3 @@ jobs:
 
       - name: Run cljs tests
         run: ./bin/kaocha cljs
-
-      - name: Run bb clj tests
-        run: bb test:clj
-
-      - name: Run bb cljs tests
-        run: bb test:cljs        
-
